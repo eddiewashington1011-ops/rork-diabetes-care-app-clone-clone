@@ -11,9 +11,10 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Bell, Plus, Trash2, CheckCircle2, ShieldAlert } from "lucide-react-native";
+import { Bell, Trash2, CheckCircle2, ShieldAlert } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import { BottomCTA } from "@/components/BottomCTA";
 import { ReminderType, useEngagement } from "@/providers/engagement";
 
 const PRESETS: { type: ReminderType; title: string }[] = [
@@ -85,7 +86,8 @@ export default function RemindersScreen() {
   }, [canSchedule, enabled, notificationsStatus, preset, requestNotificationsPermission, time, title, upsertReminder]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} testID="reminders-screen">
+    <>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} testID="reminders-screen">
       <LinearGradient
         colors={[Colors.light.tint, "#0F766E"]}
         start={{ x: 0, y: 0 }}
@@ -174,10 +176,6 @@ export default function RemindersScreen() {
           testID="reminder-title"
         />
 
-        <TouchableOpacity onPress={onAdd} style={styles.primaryButton} activeOpacity={0.9} testID="reminder-add">
-          <Plus size={16} color="#fff" />
-          <Text style={styles.primaryButtonText}>Add reminder</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.listHeader}>
@@ -227,6 +225,14 @@ export default function RemindersScreen() {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+
+    <BottomCTA
+      title="Add reminder"
+      subtitle="Create a new routine"
+      onPress={onAdd}
+      testID="reminders-bottom-cta"
+    />
+    </>
   );
 }
 
@@ -237,7 +243,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 30,
+    paddingBottom: 140,
   },
   hero: {
     borderRadius: 22,
@@ -367,21 +373,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900" as const,
     color: Colors.light.text,
-  },
-  primaryButton: {
-    backgroundColor: Colors.light.tint,
-    borderRadius: 16,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 2,
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "900" as const,
   },
   listHeader: {
     marginTop: 6,

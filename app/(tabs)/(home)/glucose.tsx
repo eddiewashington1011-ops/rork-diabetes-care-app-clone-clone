@@ -9,9 +9,10 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Droplets, Plus, Trash2, Clock } from "lucide-react-native";
+import { Droplets, Trash2, Clock } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import { BottomCTA } from "@/components/BottomCTA";
 import { useEngagement, GlucoseContext } from "@/providers/engagement";
 
 const CONTEXTS: { key: GlucoseContext; label: string }[] = [
@@ -154,10 +155,6 @@ export default function GlucoseScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.primaryButton} onPress={onQuickAdd} activeOpacity={0.9} testID="glucose-add">
-          <Plus size={16} color="#fff" />
-          <Text style={styles.primaryButtonText}>Add reading</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.listHeader}>
@@ -204,6 +201,8 @@ export default function GlucoseScreen() {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+
+    <BottomCTA title="Add reading" subtitle="Log a glucose value" onPress={onQuickAdd} testID="glucose-bottom-cta" />
   );
 }
 
@@ -214,7 +213,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 30,
+    paddingBottom: 140,
   },
   hero: {
     borderRadius: 22,
@@ -373,21 +372,6 @@ const styles = StyleSheet.create({
   },
   contextTextActive: {
     color: "#fff",
-  },
-  primaryButton: {
-    backgroundColor: Colors.light.tint,
-    borderRadius: 16,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 2,
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "900" as const,
   },
   listHeader: {
     marginTop: 6,
