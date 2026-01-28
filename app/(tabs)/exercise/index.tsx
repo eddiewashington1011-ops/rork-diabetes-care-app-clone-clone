@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Clock, Flame, ChevronRight } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { BottomCTA } from "@/components/BottomCTA";
 import { exercises, exerciseCategories, Exercise } from "@/mocks/exercises";
 
 function ExerciseCard({ exercise, onPress }: { exercise: Exercise; onPress: () => void }) {
@@ -64,13 +66,24 @@ export default function ExerciseScreen() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("all");
 
+  const todayWorkout = useMemo(() => exercises[0] ?? null, []);
+
+  const onStart = useCallback(() => {
+    console.log("[exercise] bottom cta pressed", { hasWorkout: Boolean(todayWorkout) });
+    if (!todayWorkout) {
+      Alert.alert("No workout available", "Please try again later.");
+      return;
+    }
+    router.push(`/(tabs)/exercise/${todayWorkout.id}`);
+  }, [router, todayWorkout]);
+
   const filteredExercises =
     activeCategory === "all"
       ? exercises
       : exercises.filter((e) => e.category === activeCategory);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="exercise-screen">
       <View style={styles.headerInfo}>
         <View style={styles.infoCard}>
           <Text style={styles.infoEmoji}>💡</Text>
@@ -115,6 +128,7 @@ export default function ExerciseScreen() {
         style={styles.exercisesScroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.exercisesContainer}
+        testID="exercise-list"
       >
         {filteredExercises.map((exercise) => (
           <ExerciseCard
@@ -124,6 +138,14 @@ export default function ExerciseScreen() {
           />
         ))}
       </ScrollView>
+
+      <BottomCTA
+        title="Start today’s workout"
+        subtitle={todayWorkout ? todayWorkout.title : "Pick a session"}
+        onPress={onStart}
+        disabled={!todayWorkout}
+        testID="exercise-bottom-cta"
+      />
     </View>
   );
 }
@@ -201,6 +223,7 @@ const styles = StyleSheet.create({
   },
   exercisesContainer: {
     padding: 20,
+    paddingBottom: 140,
     gap: 16,
   },
   exerciseCard: {

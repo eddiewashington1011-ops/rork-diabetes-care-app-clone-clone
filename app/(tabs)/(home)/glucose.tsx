@@ -67,7 +67,8 @@ export default function GlucoseScreen() {
   const latestClass = latest ? classify(latest.valueMgDl) : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} testID="glucose-screen">
+    <View style={styles.screen} testID="glucose-screen">
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} testID="glucose-scroll">
       <LinearGradient
         colors={[Colors.light.sapphire, "#0B2C44"]}
         start={{ x: 0, y: 0 }}
@@ -200,13 +201,18 @@ export default function GlucoseScreen() {
       )}
 
       <View style={styles.bottomSpacer} />
-    </ScrollView>
+      </ScrollView>
 
-    <BottomCTA title="Add reading" subtitle="Log a glucose value" onPress={onQuickAdd} testID="glucose-bottom-cta" />
+      <BottomCTA title="Add reading" subtitle="Log a glucose value" onPress={onQuickAdd} testID="glucose-bottom-cta" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,

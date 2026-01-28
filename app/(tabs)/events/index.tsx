@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { Clock, MapPin, ChevronRight } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { BottomCTA } from "@/components/BottomCTA";
 import { events, eventTypes, DiabetesEvent } from "@/mocks/events";
 
 function EventCard({ event, onPress }: { event: DiabetesEvent; onPress: () => void }) {
@@ -62,6 +63,11 @@ export default function EventsScreen() {
   const router = useRouter();
   const [activeType, setActiveType] = useState("all");
 
+  const onAdd = useCallback(() => {
+    console.log("[events] bottom cta pressed");
+    router.push("/(tabs)/(home)/reminders");
+  }, [router]);
+
   const filteredEvents =
     activeType === "all"
       ? events
@@ -76,7 +82,7 @@ export default function EventsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="events-screen">
       <View style={styles.summaryCard}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryNumber}>{upcomingEvents.length}</Text>
@@ -130,6 +136,7 @@ export default function EventsScreen() {
         style={styles.eventsScroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.eventsContainer}
+        testID="events-list"
       >
         {sortedEvents.length === 0 ? (
           <View style={styles.emptyState}>
@@ -147,6 +154,13 @@ export default function EventsScreen() {
           ))
         )}
       </ScrollView>
+
+      <BottomCTA
+        title="Add reminder"
+        subtitle="Medications, appointments, checkups"
+        onPress={onAdd}
+        testID="events-bottom-cta"
+      />
     </View>
   );
 }
@@ -230,6 +244,7 @@ const styles = StyleSheet.create({
   },
   eventsContainer: {
     padding: 20,
+    paddingBottom: 140,
     gap: 12,
   },
   eventCard: {

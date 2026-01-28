@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+
+import { BottomCTA } from "@/components/BottomCTA";
 import {
   TrendingDown,
   TrendingUp,
@@ -196,8 +198,14 @@ export default function HomeScreen() {
     setQuickCustomText("");
   }, [addEntry, quickCustomText]);
 
+  const onLogGlucose = useCallback(() => {
+    console.log("[home] bottom cta pressed");
+    router.push("/(tabs)/(home)/glucose");
+  }, [router]);
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="home-screen">
+    <View style={styles.screen} testID="home-screen">
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="home-scroll">
       <LinearGradient
         colors={["#0D9488", "#0F766E"]}
         style={styles.heroSection}
@@ -592,11 +600,23 @@ export default function HomeScreen() {
 
         <View style={styles.bottomSpacer} />
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <BottomCTA
+        title="Log glucose"
+        subtitle={latest ? `Last: ${latest.valueMgDl} mg/dL` : "Add your first reading"}
+        onPress={onLogGlucose}
+        testID="home-bottom-cta"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
@@ -1127,6 +1147,6 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   bottomSpacer: {
-    height: 30,
+    height: 140,
   },
 });

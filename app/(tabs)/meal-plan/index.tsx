@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { ChevronRight, Flame, Wheat, Lightbulb } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { BottomCTA } from "@/components/BottomCTA";
 import { weeklyMealPlan, mealTips, DayMealPlan, MealItem } from "@/mocks/mealPlans";
 
 function MealRow({ meal, label, time }: { meal: MealItem; label: string; time: string }) {
@@ -86,10 +87,17 @@ function DayCard({ dayPlan, isExpanded, onToggle }: { dayPlan: DayMealPlan; isEx
 }
 
 export default function MealPlanScreen() {
+  const router = useRouter();
   const [expandedDay, setExpandedDay] = useState<string>("Tuesday");
 
+  const onBrowse = useCallback(() => {
+    console.log("[meal-plan] bottom cta pressed");
+    router.push("/(tabs)/recipes");
+  }, [router]);
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.screen} testID="meal-plan-screen">
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="meal-plan-scroll">
       <View style={styles.tipCard}>
         <View style={styles.tipHeader}>
           <Lightbulb size={18} color={Colors.light.accent} />
@@ -116,11 +124,23 @@ export default function MealPlanScreen() {
       </View>
 
       <View style={styles.bottomSpacer} />
-    </ScrollView>
+      </ScrollView>
+
+      <BottomCTA
+        title="Browse cookbook"
+        subtitle="Swap meals with diabetes-friendly picks"
+        onPress={onBrowse}
+        testID="meal-plan-bottom-cta"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
@@ -260,6 +280,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   bottomSpacer: {
-    height: 30,
+    height: 140,
   },
 });

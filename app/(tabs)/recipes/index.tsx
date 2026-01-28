@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { Search, Clock, Flame, X, Globe, Leaf, CupSoda } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { BottomCTA } from "@/components/BottomCTA";
 import { recipes, recipeCategories, Recipe } from "@/mocks/recipes";
 
 function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }) {
@@ -47,6 +48,11 @@ export default function RecipesScreen() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const onPlan = useCallback(() => {
+    console.log("[cookbook] bottom cta pressed");
+    router.push("/(tabs)/meal-plan");
+  }, [router]);
 
   const filteredRecipes = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -221,6 +227,7 @@ export default function RecipesScreen() {
         style={styles.recipesScroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.recipesContainer}
+        testID="cookbook-list"
       >
         {filteredRecipes.length === 0 ? (
           <View style={styles.emptyState}>
@@ -238,6 +245,13 @@ export default function RecipesScreen() {
           ))
         )}
       </ScrollView>
+
+      <BottomCTA
+        title="Plan your week"
+        subtitle="Jump into Meal Planner"
+        onPress={onPlan}
+        testID="cookbook-bottom-cta"
+      />
     </View>
   );
 }
@@ -420,6 +434,7 @@ const styles = StyleSheet.create({
   },
   recipesContainer: {
     padding: 20,
+    paddingBottom: 140,
     gap: 16,
   },
   recipeCard: {
