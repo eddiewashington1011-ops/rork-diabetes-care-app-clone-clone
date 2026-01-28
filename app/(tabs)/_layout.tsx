@@ -12,11 +12,17 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.light.tint,
         tabBarInactiveTintColor: Colors.light.tabIconDefault,
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: Colors.light.surface,
           borderTopColor: Colors.light.border,
-          paddingTop: 4,
-          ...(Platform.OS === "web" ? { height: 60 } : {}),
+          paddingTop: 6,
+          paddingBottom: 8,
+          ...(Platform.OS === "web"
+            ? {
+                minHeight: 64,
+              }
+            : {}),
         },
         tabBarLabelStyle: {
           fontSize: 11,
