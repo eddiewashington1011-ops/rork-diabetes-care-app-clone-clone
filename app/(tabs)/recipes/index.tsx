@@ -72,6 +72,22 @@ export default function RecipesScreen() {
     return getPage({ categoryId: activeCategory, query: searchQuery, offset: 0, limit: 120 });
   }, [activeCategory, getPage, searchQuery]);
 
+  const sectionedRecipes = useMemo(() => {
+    if (activeCategory !== "all") return null;
+    if (searchQuery.trim().length > 0) return null;
+
+    const order = ["breakfast", "lunch", "dinner", "snacks", "desserts", "teas"] as const;
+
+    const sections = order
+      .map((categoryId) => {
+        const items = getPage({ categoryId, query: "", offset: 0, limit: 18 });
+        return { categoryId, items };
+      })
+      .filter((s) => s.items.length > 0);
+
+    return sections;
+  }, [activeCategory, getPage, searchQuery]);
+
   const worldBestPick = useMemo(() => {
     const picks = getPage({ categoryId: "world-best", query: "", offset: 0, limit: 24 }).sort(
       (a, b) => a.carbsPerServing - b.carbsPerServing,
@@ -284,6 +300,32 @@ export default function RecipesScreen() {
             <ActivityIndicator size="small" color={Colors.light.tint} />
             <Text style={styles.loadingText}>Loading cookbook…</Text>
           </View>
+        ) : (sectionedRecipes?.length ?? 0) > 0 ? (
+          sectionedRecipes?.map((section) => {
+            const titleByCategory: Record<string, string> = {
+              breakfast: "Breakfast",
+              lunch: "Lunch",
+              dinner: "Dinner",
+              snacks: "Snacks",
+              desserts: "Desserts",
+              teas: "Teas",
+            };
+
+            return (
+              <View key={section.categoryId} style={styles.sectionBlock} testID={`cookbook-section-${section.categoryId}`}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{titleByCategory[section.categoryId] ?? section.categoryId}</Text>
+                  <Text style={styles.sectionSubtitle}>{section.items.length}+ picks</Text>
+                </View>
+
+                <View style={styles.sectionList}>
+                  {section.items.map((recipe) => (
+                    <RecipeCard key={recipe.id} recipe={recipe} onPress={() => openRecipe(recipe.id)} />
+                  ))}
+                </View>
+              </View>
+            );
+          })
         ) : topRecipes.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🍽️</Text>
@@ -630,6 +672,28 @@ const styles = StyleSheet.create({
   recipesContainer: {
     padding: 20,
     paddingBottom: 140,
+    gap: 16,
+  },
+  sectionBlock: {
+    gap: 10,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "900" as const,
+    color: Colors.light.text,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    color: Colors.light.textSecondary,
+  },
+  sectionList: {
     gap: 16,
   },
   recipeCard: {
