@@ -15,7 +15,7 @@ import {
   Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Search, Clock, Flame, X, Globe, Leaf, CupSoda, Sparkles } from "lucide-react-native";
+import { Search, Clock, Flame, X, Globe, Leaf, CupSoda, Sparkles, WifiOff } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { BottomCTA } from "@/components/BottomCTA";
 import { recipeCategories } from "@/mocks/recipes";
@@ -364,6 +364,14 @@ export default function RecipesScreen() {
         >
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()} testID="cookbook-coach-modal">
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+              {lastError && lastError.toLowerCase().includes("offline") && (
+                <View style={styles.offlineBanner} testID="cookbook-coach-offline-banner">
+                  <WifiOff size={16} color="#fff" />
+                  <Text style={styles.offlineBannerText}>Dia is offline</Text>
+                  <Text style={styles.offlineBannerSub}>Recipes will be generated locally</Text>
+                </View>
+              )}
+
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Dia</Text>
                 <TouchableOpacity
@@ -425,7 +433,9 @@ export default function RecipesScreen() {
                 )}
               </TouchableOpacity>
 
-              {lastError ? <Text style={styles.modalErrorText}>{lastError}</Text> : null}
+              {lastError && !lastError.toLowerCase().includes("offline") ? (
+                <Text style={styles.modalErrorText}>{lastError}</Text>
+              ) : null}
             </KeyboardAvoidingView>
           </Pressable>
         </Pressable>
@@ -926,5 +936,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700" as const,
     color: Colors.light.danger,
+  },
+  offlineBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    backgroundColor: "#f59e0b",
+    marginHorizontal: -18,
+    marginTop: -14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    marginBottom: 12,
+  },
+  offlineBannerText: {
+    fontSize: 14,
+    fontWeight: "800" as const,
+    color: "#fff",
+  },
+  offlineBannerSub: {
+    width: "100%",
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: -4,
   },
 });
