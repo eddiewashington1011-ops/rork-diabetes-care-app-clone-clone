@@ -5,14 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   Image,
+  TouchableOpacity,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { Clock, Flame, AlertTriangle, Heart } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Clock, Flame, AlertTriangle, Heart, Video } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { exercises } from "@/mocks/exercises";
 
 export default function ExerciseDetailScreen() {
   const { exerciseId } = useLocalSearchParams<{ exerciseId: string }>();
+  const router = useRouter();
   const exercise = exercises.find((e) => e.id === exerciseId);
 
   if (!exercise) {
@@ -109,6 +111,15 @@ export default function ExerciseDetailScreen() {
             </View>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={styles.videoAgentButton}
+          onPress={() => router.push(`/(tabs)/exercise/video-agent?exerciseId=${exerciseId}`)}
+          activeOpacity={0.8}
+        >
+          <Video size={20} color="#fff" />
+          <Text style={styles.videoAgentButtonText}>Create Video Content</Text>
+        </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
       </View>
@@ -299,6 +310,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.light.text,
     lineHeight: 19,
+  },
+  videoAgentButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginTop: 20,
+  },
+  videoAgentButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
   },
   bottomSpacer: {
     height: 20,

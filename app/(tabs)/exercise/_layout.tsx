@@ -28,6 +28,12 @@ export default function ExerciseLayout() {
           title: "Workout",
         }}
       />
+      <Stack.Screen
+        name="video-agent"
+        options={{
+          title: "Video Creator",
+        }}
+      />
     </Stack>
   );
 }
