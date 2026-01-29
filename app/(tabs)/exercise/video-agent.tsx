@@ -249,8 +249,9 @@ export default function ExerciseVideoAgentScreen() {
     setTimeout(() => setCopiedIndex(null), 2000);
   }, []);
 
-  const handleSend = useCallback(() => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = useCallback((directMessage?: string) => {
+    const messageToSend = directMessage ?? input;
+    if (!messageToSend.trim() || isLoading) return;
     
     const exerciseContext = exercise 
       ? `[Context: Exercise "${exercise.title}" - ${exercise.duration} min, ${exercise.caloriesBurned} cal, ${exercise.intensity} intensity, ${exercise.category}]`
@@ -258,8 +259,8 @@ export default function ExerciseVideoAgentScreen() {
     
     const systemContext = `You are a creative fitness video content specialist for short-form workout videos (TikTok, Reels, Shorts). Help create engaging diabetes-friendly exercise content. ${exerciseContext}`;
     
-    console.log("[ExerciseVideoAgent] sending message", { input, hasExercise: Boolean(exercise) });
-    sendMessage({ text: `${systemContext}\n\nUser: ${input}` });
+    console.log("[ExerciseVideoAgent] sending message", { message: messageToSend, hasExercise: Boolean(exercise) });
+    sendMessage({ text: `${systemContext}\n\nUser: ${messageToSend}` });
     setInput("");
   }, [input, isLoading, exercise, sendMessage]);
 
@@ -457,10 +458,7 @@ export default function ExerciseVideoAgentScreen() {
               <TouchableOpacity
                 key={idx}
                 style={styles.quickAction}
-                onPress={() => {
-                  setInput(action.prompt);
-                  setTimeout(() => handleSend(), 100);
-                }}
+                onPress={() => handleSend(action.prompt)}
                 activeOpacity={0.8}
                 disabled={isLoading}
               >
@@ -530,12 +528,12 @@ export default function ExerciseVideoAgentScreen() {
             multiline
             maxLength={500}
             editable={!isLoading}
-            onSubmitEditing={handleSend}
+            onSubmitEditing={() => handleSend()}
             testID="exercise-video-agent-input"
           />
           <TouchableOpacity
             style={[styles.sendButton, (!input.trim() || isLoading) && styles.sendButtonDisabled]}
-            onPress={handleSend}
+            onPress={() => handleSend()}
             disabled={!input.trim() || isLoading}
             activeOpacity={0.8}
             testID="exercise-video-agent-send"

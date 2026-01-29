@@ -203,8 +203,9 @@ export default function VideoAgentScreen() {
     setTimeout(() => setCopiedIndex(null), 2000);
   }, []);
 
-  const handleSend = useCallback(() => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = useCallback((directMessage?: string) => {
+    const messageToSend = directMessage ?? input;
+    if (!messageToSend.trim() || isLoading) return;
     
     const recipeContext = recipe 
       ? `[Context: Recipe "${recipe.title}" - ${recipe.calories} cal, ${recipe.carbsPerServing}g carbs, ${recipe.category}]`
@@ -212,8 +213,8 @@ export default function VideoAgentScreen() {
     
     const systemContext = `You are a creative video content specialist for short-form cooking videos (TikTok, Reels, Shorts). Help create engaging diabetes-friendly recipe content. ${recipeContext}`;
     
-    console.log("[VideoAgent] sending message", { input, hasRecipe: Boolean(recipe) });
-    sendMessage({ text: `${systemContext}\n\nUser: ${input}` });
+    console.log("[VideoAgent] sending message", { message: messageToSend, hasRecipe: Boolean(recipe) });
+    sendMessage({ text: `${systemContext}\n\nUser: ${messageToSend}` });
     setInput("");
   }, [input, isLoading, recipe, sendMessage]);
 
@@ -411,10 +412,7 @@ export default function VideoAgentScreen() {
               <TouchableOpacity
                 key={idx}
                 style={styles.quickAction}
-                onPress={() => {
-                  setInput(action.prompt);
-                  setTimeout(() => handleSend(), 100);
-                }}
+                onPress={() => handleSend(action.prompt)}
                 activeOpacity={0.8}
                 disabled={isLoading}
               >
@@ -484,12 +482,12 @@ export default function VideoAgentScreen() {
             multiline
             maxLength={500}
             editable={!isLoading}
-            onSubmitEditing={handleSend}
+            onSubmitEditing={() => handleSend()}
             testID="video-agent-input"
           />
           <TouchableOpacity
             style={[styles.sendButton, (!input.trim() || isLoading) && styles.sendButtonDisabled]}
-            onPress={handleSend}
+            onPress={() => handleSend()}
             disabled={!input.trim() || isLoading}
             activeOpacity={0.8}
             testID="video-agent-send"
