@@ -63,10 +63,10 @@ export default function RecipesScreen() {
   const [coachPrefs, setCoachPrefs] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
-  const onPlan = useCallback(() => {
-    console.log("[cookbook] bottom cta pressed");
-    router.push("/(tabs)/meal-plan");
-  }, [router]);
+  const onOpenCoach = useCallback(() => {
+    console.log("[cookbook] bottom cta pressed - open coach");
+    setCoachOpen(true);
+  }, []);
 
   const topRecipes = useMemo(() => {
     return getPage({ categoryId: activeCategory, query: searchQuery, offset: 0, limit: 120 });
@@ -417,9 +417,9 @@ export default function RecipesScreen() {
       </Modal>
 
       <BottomCTA
-        title="Plan your week"
-        subtitle="Jump into Meal Planner"
-        onPress={onPlan}
+        title="Generate recipe"
+        subtitle="Tell Dia what you’re craving"
+        onPress={onOpenCoach}
         testID="cookbook-bottom-cta"
       />
     </View>
