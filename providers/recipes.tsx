@@ -273,6 +273,81 @@ function buildAgentSystemPrompt(): string {
   );
 }
 
+function localFallbackRecipe(input: { goal: string; preferences: string }): Omit<CoachRecipe, "id" | "image" | "source"> {
+  const seed = hash32(`${input.goal}::${input.preferences}`);
+  const rng = mulberry32(seed);
+
+  const category = pick(rng, CATEGORIES);
+  const titleBase = virtualStub(clampInt(seed % TOTAL_VIRTUAL, 0, TOTAL_VIRTUAL - 1)).title;
+  const prefs = input.preferences.trim();
+  const title = prefs.length > 0 ? `${titleBase} (${prefs.slice(0, 32)})` : titleBase;
+
+  const calories = clampInt(280 + rng() * 420, 120, 980);
+  const carbsPerServing = clampInt(12 + rng() * 34, 0, 80);
+  const fiberG = clampInt(6 + rng() * 10, 0, 30);
+  const sugarG = clampInt(1 + rng() * 6, 0, 20);
+  const proteinG = clampInt(18 + rng() * 28, 0, 75);
+  const fatG = clampInt(8 + rng() * 20, 0, 55);
+  const glycemicLoad = clampInt(Math.max(1, Math.round((carbsPerServing - fiberG) * 0.5)), 1, 40);
+
+  const description =
+    "A cozy, diabetes-friendly recipe with balanced carbs + protein to help keep glucose steady — without sacrificing flavor.";
+
+  const tags = ["no-added-sugar", "high-fiber", "high-protein", "mediterranean", "meal-prep"].slice(
+    0,
+    clampInt(3 + rng() * 3, 3, 6),
+  );
+
+  const ingredients = [
+    "1 cup non-starchy veggies (spinach, peppers, zucchini)",
+    "1 tbsp extra-virgin olive oil",
+    "1/2 cup cooked high-fiber base (lentils/quinoa/beans)",
+    "4–6 oz lean protein (chicken, tofu, salmon)",
+    "1 tbsp lemon juice or vinegar",
+    "Herbs + spices (garlic, paprika, black pepper)",
+    "Salt (light) + optional chili flakes",
+  ];
+
+  const instructions = [
+    "Prep your veggies and protein; pat protein dry for better browning.",
+    "Warm olive oil in a pan over medium heat; sauté veggies 4–6 minutes until tender-crisp.",
+    "Add protein and spices; cook until done (or warmed through if pre-cooked).",
+    "Stir in the high-fiber base; splash with lemon/vinegar to brighten.",
+    "Taste and adjust with herbs, pepper, and a small pinch of salt.",
+    "Serve with extra veggies on the side to keep the meal volume high and the carbs steady.",
+  ];
+
+  const glycemicNotes = [
+    "Fiber slows carb absorption — keep the veggie + legumes generous.",
+    "Protein + healthy fats can soften glucose spikes.",
+    "If you’re sensitive to carbs, reduce the grain/beans portion and add more vegetables.",
+  ];
+
+  const skillLevel: NonNullable<CoachRecipe["skillLevel"]> = rng() < 0.7 ? "easy" : rng() < 0.92 ? "medium" : "advanced";
+
+  return {
+    title,
+    description,
+    category,
+    prepTime: clampInt(8 + rng() * 14, 0, 45),
+    cookTime: clampInt(10 + rng() * 22, 0, 60),
+    servings: clampInt(1 + rng() * 3, 1, 6),
+    calories,
+    carbsPerServing,
+    fiberG,
+    sugarG,
+    proteinG,
+    fatG,
+    glycemicLoad,
+    skillLevel,
+    tags,
+    ingredients,
+    instructions,
+    glycemicNotes,
+    origin: "Dia (offline)",
+  };
+}
+
 async function agentGenerateRecipe(input: { goal: string; preferences: string }): Promise<Omit<CoachRecipe, "id" | "image" | "source">> {
   const system = buildAgentSystemPrompt();
   const user =
@@ -281,35 +356,40 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
     "Constraints: no added sugar; limit refined carbs; include fiber; keep sodium reasonable. " +
     "Output must include calories, carbsPerServing, fiberG, sugarG, proteinG, fatG, glycemicLoad.";
 
-  const res = await generateObject({
-    messages: [
-      { role: "assistant", content: system },
-      { role: "user", content: user },
-    ],
-    schema: AgentRecipeSchema,
-  });
+  try {
+    const res = await generateObject({
+      messages: [
+        { role: "assistant", content: system },
+        { role: "user", content: user },
+      ],
+      schema: AgentRecipeSchema,
+    });
 
-  return {
-    title: res.title,
-    description: res.description,
-    category: res.category,
-    prepTime: res.prepTime,
-    cookTime: res.cookTime,
-    servings: res.servings,
-    calories: res.calories,
-    carbsPerServing: res.carbsPerServing,
-    ingredients: res.ingredients,
-    instructions: res.instructions,
-    tags: res.tags,
-    glycemicNotes: res.glycemicNotes,
-    fiberG: res.fiberG,
-    sugarG: res.sugarG,
-    proteinG: res.proteinG,
-    fatG: res.fatG,
-    glycemicLoad: res.glycemicLoad,
-    skillLevel: res.skillLevel,
-    origin: "Dia",
-  };
+    return {
+      title: res.title,
+      description: res.description,
+      category: res.category,
+      prepTime: res.prepTime,
+      cookTime: res.cookTime,
+      servings: res.servings,
+      calories: res.calories,
+      carbsPerServing: res.carbsPerServing,
+      ingredients: res.ingredients,
+      instructions: res.instructions,
+      tags: res.tags,
+      glycemicNotes: res.glycemicNotes,
+      fiberG: res.fiberG,
+      sugarG: res.sugarG,
+      proteinG: res.proteinG,
+      fatG: res.fatG,
+      glycemicLoad: res.glycemicLoad,
+      skillLevel: res.skillLevel,
+      origin: "Dia",
+    };
+  } catch (e) {
+    console.error("[recipes] agentGenerateRecipe: AI call failed; using offline fallback", { e });
+    return localFallbackRecipe(input);
+  }
 }
 
 export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() => {
@@ -451,31 +531,30 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
     async (input: { goal: string; preferences: string }) => {
       console.log("[recipes] createRecipeWithAgent:start", input);
       setLastError(null);
-      try {
-        const generated = await agentGenerateRecipe(input);
-        const id = `ai_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-        const image = unsplashFor(id, generated.title);
 
-        const full: CoachRecipe = {
-          ...(generated as CoachRecipe),
-          id,
-          image,
-          source: "saved",
-        };
-
-        setSavedRecipes((prev) => {
-          const next = [full, ...prev];
-          void persist(next);
-          return next;
-        });
-
-        console.log("[recipes] createRecipeWithAgent:done", { id, title: full.title });
-        return full;
-      } catch (e) {
-        console.error("[recipes] createRecipeWithAgent:failed", { e });
-        setLastError("Dia couldn’t generate a recipe. Please try again.");
-        throw e;
+      const generated = await agentGenerateRecipe(input);
+      if ((generated.origin ?? "").toLowerCase().includes("offline")) {
+        setLastError("Dia is offline right now — I made a quick recipe anyway.");
       }
+
+      const id = `ai_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      const image = unsplashFor(id, generated.title);
+
+      const full: CoachRecipe = {
+        ...(generated as CoachRecipe),
+        id,
+        image,
+        source: "saved",
+      };
+
+      setSavedRecipes((prev) => {
+        const next = [full, ...prev];
+        void persist(next);
+        return next;
+      });
+
+      console.log("[recipes] createRecipeWithAgent:done", { id, title: full.title });
+      return full;
     },
     [persist],
   );
