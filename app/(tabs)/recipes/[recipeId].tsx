@@ -37,7 +37,7 @@ export default function RecipeDetailScreen() {
       if (next?.source === "saved") {
         Alert.alert("Ready to cook", "Full ingredients + steps generated.");
       }
-    } catch (e) {
+    } catch {
       Alert.alert("Couldn’t generate", "Please try again in a moment.");
     } finally {
       setIsExpanding(false);

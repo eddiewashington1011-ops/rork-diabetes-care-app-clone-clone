@@ -10,10 +10,11 @@ type Props = {
   subtitle?: string;
   onPress: () => void;
   disabled?: boolean;
+  bottomOffset?: number;
   testID?: string;
 };
 
-function BottomCTAInner({ title, subtitle, onPress, disabled, testID }: Props) {
+function BottomCTAInner({ title, subtitle, onPress, disabled, bottomOffset, testID }: Props) {
   const insets = useSafeAreaInsets();
 
   const onPressSafe = useCallback(() => {
@@ -23,12 +24,18 @@ function BottomCTAInner({ title, subtitle, onPress, disabled, testID }: Props) {
   }, [disabled, onPress, title]);
 
   const bottomPad = Math.max(12, insets.bottom + 10);
+  const resolvedBottomOffset = bottomOffset ?? (Platform.OS === "web" ? 68 : 64);
 
   return (
-    <View pointerEvents="box-none" style={styles.root} testID={testID ? `${testID}-root` : undefined}>
+    <View
+      pointerEvents="box-none"
+      style={[styles.root, { bottom: resolvedBottomOffset }]}
+      testID={testID ? `${testID}-root` : undefined}
+    >
       <BlurView
         intensity={Platform.OS === "web" ? 14 : 28}
         tint="light"
+        pointerEvents="auto"
         style={[styles.shell, { paddingBottom: bottomPad }]}
       >
         <View style={styles.innerRow}>
@@ -66,6 +73,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 50,
+    elevation: 20,
   },
   shell: {
     borderTopWidth: 1,
