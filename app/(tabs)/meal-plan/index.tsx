@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ChevronRight, Flame, Wheat, Lightbulb, Pencil, RefreshCw, RotateCcw, X } from "lucide-react-native";
+import { ChevronRight, Flame, Wheat, Lightbulb, Pencil, RefreshCw, RotateCcw, X, Wand2, CheckCircle2 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { BottomCTA } from "@/components/BottomCTA";
 import { mealTips, DayMealPlan, MealItem } from "@/mocks/mealPlans";
@@ -137,7 +137,7 @@ function slotTime(slot: MealSlot): string {
 
 export default function MealPlanScreen() {
   const router = useRouter();
-  const { weekPlan, isHydrating, lastError, resetToDefault, setMeal, getCandidatesForSlot, swapMealWithAgent } = useMealPlan();
+  const { weekPlan, isHydrating, lastError, resetToDefault, setMeal, getCandidatesForSlot, swapMealWithAgent, createPersonalPlanWithCoach } = useMealPlan();
 
   const [expandedDay, setExpandedDay] = useState<string>("Tuesday");
 
@@ -146,6 +146,17 @@ export default function MealPlanScreen() {
   const [editorSlot, setEditorSlot] = useState<MealSlot>("breakfast");
   const [preferencesText, setPreferencesText] = useState<string>("");
   const [agentBusy, setAgentBusy] = useState<boolean>(false);
+
+  const [coachOpen, setCoachOpen] = useState<boolean>(false);
+  const [coachBusy, setCoachBusy] = useState<boolean>(false);
+
+  const [coachGoal, setCoachGoal] = useState<string>("Blood sugar control");
+  const [coachCookingSkill, setCoachCookingSkill] = useState<"easy" | "medium" | "advanced">("easy");
+  const [coachCookingTimeMinutes, setCoachCookingTimeMinutes] = useState<string>("20");
+  const [coachDietaryStyle, setCoachDietaryStyle] = useState<string>("");
+  const [coachAllergies, setCoachAllergies] = useState<string>("");
+  const [coachTargetCarbs, setCoachTargetCarbs] = useState<string>("120");
+  const [coachNotes, setCoachNotes] = useState<string>("");
 
   const currentDay = useMemo(() => weekPlan.find((d) => d.dayName === editorDayName) ?? null, [editorDayName, weekPlan]);
   const currentMeal = useMemo(() => {
@@ -176,6 +187,51 @@ export default function MealPlanScreen() {
     console.log("[meal-plan] bottom cta pressed");
     router.push("/(tabs)/recipes");
   }, [router]);
+
+  const openCoach = useCallback(() => {
+    console.log("[meal-plan] openCoach");
+    setCoachOpen(true);
+  }, []);
+
+  const closeCoach = useCallback(() => {
+    console.log("[meal-plan] closeCoach");
+    setCoachOpen(false);
+    setCoachBusy(false);
+  }, []);
+
+  const onRunCoach = useCallback(async () => {
+    const cookingTime = Number(coachCookingTimeMinutes);
+    const targetCarbs = Number(coachTargetCarbs);
+
+    if (!Number.isFinite(cookingTime) || cookingTime <= 0 || cookingTime > 180) {
+      Alert.alert("Check cooking time", "Enter a number between 1 and 180 minutes.");
+      return;
+    }
+    if (!Number.isFinite(targetCarbs) || targetCarbs <= 0 || targetCarbs > 400) {
+      Alert.alert("Check carbs target", "Enter a realistic target between 1 and 400 grams per day.");
+      return;
+    }
+
+    try {
+      setCoachBusy(true);
+      await createPersonalPlanWithCoach({
+        goal: coachGoal,
+        cookingSkill: coachCookingSkill,
+        cookingTimeMinutes: Math.round(cookingTime),
+        dietaryStyle: coachDietaryStyle,
+        dislikesOrAllergies: coachAllergies,
+        targetCarbsPerDayG: Math.round(targetCarbs),
+        notes: coachNotes,
+      });
+      closeCoach();
+      Alert.alert("Plan ready", "Your personalized weekly meal plan has been created.");
+    } catch {
+      Alert.alert("Coach couldn’t build a plan", "Please try again in a moment.");
+    } finally {
+      setCoachBusy(false);
+    }
+  }, [coachAllergies, coachCookingSkill, coachCookingTimeMinutes, coachDietaryStyle, coachGoal, coachNotes, coachTargetCarbs, createPersonalPlanWithCoach, closeCoach]);
+
 
   const onReset = useCallback(() => {
     Alert.alert("Reset meal plan?", "This will overwrite your edits for the week.", [
@@ -213,6 +269,11 @@ export default function MealPlanScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>This Week&apos;s Plan</Text>
           <View style={styles.sectionActions}>
+            <TouchableOpacity style={[styles.sectionActionBtn, styles.sectionActionPrimary]} onPress={openCoach} activeOpacity={0.85} testID="meal-plan-open-coach">
+              <Wand2 size={16} color="#fff" />
+              <Text style={[styles.sectionActionText, styles.sectionActionTextPrimary]}>Coach interview</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.sectionActionBtn} onPress={onReset} activeOpacity={0.85} testID="meal-plan-reset">
               <RotateCcw size={16} color={Colors.light.text} />
               <Text style={styles.sectionActionText}>Reset</Text>
@@ -318,6 +379,126 @@ export default function MealPlanScreen() {
                 );
               })}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={coachOpen} transparent animationType="slide" onRequestClose={closeCoach}>
+        <View style={styles.modalBackdrop} testID="meal-plan-coach-modal">
+          <View style={styles.coachModalCard}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>DiaCare Coach</Text>
+                <Text style={styles.modalSubtitle}>Answer a few questions — I’ll build your weekly plan.</Text>
+              </View>
+              <TouchableOpacity style={styles.modalClose} onPress={closeCoach} activeOpacity={0.85} testID="meal-plan-coach-close">
+                <X size={18} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.coachScroll} showsVerticalScrollIndicator={false} testID="meal-plan-coach-scroll">
+              <Text style={styles.coachSectionTitle}>1) What’s your main goal?</Text>
+              <View style={styles.choiceRow}>
+                {(["Weight loss", "Blood sugar control", "Muscle gain", "Heart health"] as const).map((g) => {
+                  const active = coachGoal === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      style={[styles.choiceChip, active && styles.choiceChipActive]}
+                      onPress={() => setCoachGoal(g)}
+                      activeOpacity={0.85}
+                      testID={`coach-goal-${g.replace(/\s+/g, "-").toLowerCase()}`}
+                    >
+                      <Text style={[styles.choiceChipText, active && styles.choiceChipTextActive]}>{g}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.coachSectionTitle}>2) Cooking comfort level</Text>
+              <View style={styles.choiceRow}>
+                {(["easy", "medium", "advanced"] as const).map((lvl) => {
+                  const active = coachCookingSkill === lvl;
+                  return (
+                    <TouchableOpacity
+                      key={lvl}
+                      style={[styles.choiceChip, active && styles.choiceChipActive]}
+                      onPress={() => setCoachCookingSkill(lvl)}
+                      activeOpacity={0.85}
+                      testID={`coach-skill-${lvl}`}
+                    >
+                      <Text style={[styles.choiceChipText, active && styles.choiceChipTextActive]}>{lvl}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.coachSectionTitle}>3) Max cooking time per meal (minutes)</Text>
+              <TextInput
+                value={coachCookingTimeMinutes}
+                onChangeText={setCoachCookingTimeMinutes}
+                placeholder="20"
+                keyboardType="number-pad"
+                placeholderTextColor={Colors.light.textSecondary}
+                style={styles.coachInput}
+                testID="coach-cooking-time"
+              />
+
+              <Text style={styles.coachSectionTitle}>4) Dietary style (optional)</Text>
+              <TextInput
+                value={coachDietaryStyle}
+                onChangeText={setCoachDietaryStyle}
+                placeholder="e.g. Mediterranean, vegetarian, halal"
+                placeholderTextColor={Colors.light.textSecondary}
+                style={styles.coachInput}
+                testID="coach-dietary-style"
+              />
+
+              <Text style={styles.coachSectionTitle}>5) Dislikes / allergies (optional)</Text>
+              <TextInput
+                value={coachAllergies}
+                onChangeText={setCoachAllergies}
+                placeholder="e.g. shellfish, peanuts, mushrooms"
+                placeholderTextColor={Colors.light.textSecondary}
+                style={styles.coachInput}
+                testID="coach-allergies"
+              />
+
+              <Text style={styles.coachSectionTitle}>6) Target carbs per day (grams)</Text>
+              <TextInput
+                value={coachTargetCarbs}
+                onChangeText={setCoachTargetCarbs}
+                placeholder="120"
+                keyboardType="number-pad"
+                placeholderTextColor={Colors.light.textSecondary}
+                style={styles.coachInput}
+                testID="coach-target-carbs"
+              />
+
+              <Text style={styles.coachSectionTitle}>7) Anything else you want? (optional)</Text>
+              <TextInput
+                value={coachNotes}
+                onChangeText={setCoachNotes}
+                placeholder="e.g. high-protein breakfasts, no fish on weekdays"
+                placeholderTextColor={Colors.light.textSecondary}
+                style={[styles.coachInput, styles.coachNotesInput]}
+                multiline
+                testID="coach-notes"
+              />
+
+              <View style={{ height: 14 }} />
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.coachCta, coachBusy && styles.coachCtaDisabled]}
+              onPress={onRunCoach}
+              disabled={coachBusy}
+              activeOpacity={0.85}
+              testID="coach-generate-plan"
+            >
+              {coachBusy ? <ActivityIndicator color="#fff" /> : <CheckCircle2 size={18} color="#fff" />}
+              <Text style={styles.coachCtaText}>{coachBusy ? "Building your plan…" : "Create my meal plan"}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -493,6 +674,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  sectionActionPrimary: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  sectionActionTextPrimary: {
+    color: "#fff",
+  },
   sectionActionBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -544,6 +732,83 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
     padding: 16,
     maxHeight: "86%",
+  },
+  coachModalCard: {
+    backgroundColor: Colors.light.surface,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 16,
+    maxHeight: "92%",
+  },
+  coachScroll: {
+    maxHeight: 420,
+  },
+  coachSectionTitle: {
+    fontSize: 13,
+    fontWeight: "800" as const,
+    color: Colors.light.text,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  choiceRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  choiceChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  choiceChipActive: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  choiceChipText: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    color: Colors.light.text,
+    textTransform: "capitalize",
+  },
+  choiceChipTextActive: {
+    color: "#fff",
+  },
+  coachInput: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 13,
+    color: Colors.light.text,
+    fontWeight: "600" as const,
+  },
+  coachNotesInput: {
+    minHeight: 86,
+    textAlignVertical: "top" as const,
+  },
+  coachCta: {
+    marginTop: 12,
+    backgroundColor: Colors.light.sapphire,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  coachCtaDisabled: {
+    opacity: 0.7,
+  },
+  coachCtaText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900" as const,
   },
   modalHeader: {
     flexDirection: "row",

@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, BookOpen, Calendar, Dumbbell, CalendarDays } from "lucide-react-native";
+import { Home, BookOpen, Calendar, Dumbbell, ShoppingCart, CalendarDays } from "lucide-react-native";
 import React from "react";
 import { Platform } from "react-native";
 
@@ -49,6 +49,13 @@ export default function TabLayout() {
         options={{
           title: "Meal Plan",
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="grocery-list"
+        options={{
+          title: "Groceries",
+          tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
         }}
       />
       <Tabs.Screen

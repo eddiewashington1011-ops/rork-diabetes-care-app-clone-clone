@@ -15,10 +15,21 @@ type MealPlanState = {
   lastError: string | null;
 
   setMeal: (input: { dayName: string; slot: MealSlot; meal: MealItem }) => Promise<void>;
+  setWeekPlan: (input: { weekPlan: DayMealPlan[] }) => Promise<void>;
   resetToDefault: () => Promise<void>;
 
   getCandidatesForSlot: (slot: MealSlot) => MealItem[];
   swapMealWithAgent: (input: { dayName: string; slot: MealSlot; preferencesText: string }) => Promise<void>;
+
+  createPersonalPlanWithCoach: (input: {
+    goal: string;
+    cookingSkill: "easy" | "medium" | "advanced";
+    cookingTimeMinutes: number;
+    dietaryStyle: string;
+    dislikesOrAllergies: string;
+    targetCarbsPerDayG: number;
+    notes: string;
+  }) => Promise<void>;
 };
 
 const STORAGE_KEY = "diacare:meal_plan:v1" as const;
@@ -31,6 +42,18 @@ const QUICK_SNACKS: MealItem[] = [
   { id: "snk_berries", name: "Mixed Berries (1 cup)", calories: 60, carbs: 14, protein: 1 },
   { id: "snk_eggs", name: "Hard Boiled Eggs (2)", calories: 140, carbs: 1, protein: 12 },
 ];
+
+function pickSnackByName(name: string | undefined): MealItem | null {
+  if (!name) return null;
+  const needle = name.trim().toLowerCase();
+  return QUICK_SNACKS.find((s) => s.name.trim().toLowerCase() === needle) ?? null;
+}
+
+function safeInt(n: number, fallback: number): number {
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.round(n));
+}
+
 
 function normalizeMealItem(input: Partial<MealItem> & Pick<MealItem, "name" | "calories" | "carbs" | "protein">): MealItem {
   return {
@@ -121,6 +144,30 @@ const SwapSchema = z
     justification: z.string().min(1).max(280),
   })
   .strict();
+
+const CoachPlanSchema = z
+  .object({
+    days: z
+      .array(
+        z
+          .object({
+            dayName: z.string().min(1),
+            breakfastRecipeId: z.string().optional(),
+            morningSnackRecipeId: z.string().optional(),
+            morningSnackName: z.string().optional(),
+            lunchRecipeId: z.string().optional(),
+            afternoonSnackRecipeId: z.string().optional(),
+            afternoonSnackName: z.string().optional(),
+            dinnerRecipeId: z.string().optional(),
+          })
+          .strict(),
+      )
+      .min(7)
+      .max(7),
+    summary: z.string().min(1).max(320),
+  })
+  .strict();
+
 
 async function agentPickSwap(input: {
   slot: MealSlot;
@@ -244,6 +291,17 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
     [persist],
   );
 
+  const setWeekPlanWhole = useCallback(
+    async (input: { weekPlan: DayMealPlan[] }) => {
+      console.log("[mealPlan] setWeekPlan", { days: input.weekPlan.length });
+      setLastError(null);
+      setWeekPlan(input.weekPlan);
+      await persist(input.weekPlan);
+    },
+    [persist],
+  );
+
+
   const resetToDefault = useCallback(async () => {
     console.log("[mealPlan] resetToDefault");
     setLastError(null);
@@ -299,17 +357,111 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
     [setMeal, weekPlan],
   );
 
+  const createPersonalPlanWithCoach = useCallback(
+    async (input: {
+      goal: string;
+      cookingSkill: "easy" | "medium" | "advanced";
+      cookingTimeMinutes: number;
+      dietaryStyle: string;
+      dislikesOrAllergies: string;
+      targetCarbsPerDayG: number;
+      notes: string;
+    }) => {
+      console.log("[mealPlan] createPersonalPlanWithCoach:start", input);
+
+      const dayNames = weekPlan.map((d) => d.dayName);
+      const breakfastPool = recipes.filter((r) => r.category === "breakfast").slice(0, 60).map((r) => ({ id: r.id, title: r.title, calories: r.calories, carbs: r.carbsPerServing, tags: r.tags }));
+      const lunchPool = recipes.filter((r) => r.category === "lunch").slice(0, 60).map((r) => ({ id: r.id, title: r.title, calories: r.calories, carbs: r.carbsPerServing, tags: r.tags }));
+      const dinnerPool = recipes.filter((r) => r.category === "dinner").slice(0, 60).map((r) => ({ id: r.id, title: r.title, calories: r.calories, carbs: r.carbsPerServing, tags: r.tags }));
+      const snackPool = recipes.filter((r) => r.category === "snacks").slice(0, 60).map((r) => ({ id: r.id, title: r.title, calories: r.calories, carbs: r.carbsPerServing, tags: r.tags }));
+
+      const system =
+        "You are DiaCare Coach. Create a diabetes-friendly weekly meal plan (low glycemic load, no added sugars, moderate carbs, high fiber, heart healthy, low sodium, balanced macros). Pick recipes ONLY from the provided pools. For snack slots, you may choose a snack recipeId OR a simple snackName from the provided snackNames. Keep prep simple and align with user's goal and cooking constraints.";
+
+      const user =
+        `User goal: ${input.goal}\n` +
+        `Cooking skill: ${input.cookingSkill}\n` +
+        `Max cooking time per meal: ${safeInt(input.cookingTimeMinutes, 20)} minutes\n` +
+        `Dietary style: ${input.dietaryStyle || "(none)"}\n` +
+        `Dislikes/allergies: ${input.dislikesOrAllergies || "(none)"}\n` +
+        `Target carbs/day: ${safeInt(input.targetCarbsPerDayG, 120)}g\n` +
+        `Other notes: ${input.notes || "(none)"}\n` +
+        `Days: ${JSON.stringify(dayNames)}\n` +
+        `Breakfast pool: ${JSON.stringify(breakfastPool)}\n` +
+        `Lunch pool: ${JSON.stringify(lunchPool)}\n` +
+        `Dinner pool: ${JSON.stringify(dinnerPool)}\n` +
+        `Snack recipe pool: ${JSON.stringify(snackPool)}\n` +
+        `Snack names: ${JSON.stringify(QUICK_SNACKS.map((s) => s.name))}\n` +
+        "Rules: Use variety across the week. Avoid repeating the same dinner more than 2x. Prefer lower carbs for snacks. Return exactly 7 days.";
+
+      try {
+        setLastError(null);
+        const res = await generateObject({
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          schema: CoachPlanSchema,
+        });
+
+        console.log("[mealPlan] createPersonalPlanWithCoach:generated", { summary: res.summary, days: res.days.length });
+
+        const nextWeek = weekPlan.map((d) => {
+          const pick = res.days.find((x) => x.dayName === d.dayName) ?? null;
+          if (!pick) return d;
+
+          const breakfastRecipe = recipes.find((r) => r.id === pick.breakfastRecipeId) ?? null;
+          const lunchRecipe = recipes.find((r) => r.id === pick.lunchRecipeId) ?? null;
+          const dinnerRecipe = recipes.find((r) => r.id === pick.dinnerRecipeId) ?? null;
+
+          const msRecipe = recipes.find((r) => r.id === pick.morningSnackRecipeId) ?? null;
+          const asRecipe = recipes.find((r) => r.id === pick.afternoonSnackRecipeId) ?? null;
+
+          const msSnack = pickSnackByName(pick.morningSnackName);
+          const asSnack = pickSnackByName(pick.afternoonSnackName);
+
+          const breakfast = breakfastRecipe ? recipeToMealItem(breakfastRecipe, "breakfast") : d.breakfast;
+          const lunch = lunchRecipe ? recipeToMealItem(lunchRecipe, "lunch") : d.lunch;
+          const dinner = dinnerRecipe ? recipeToMealItem(dinnerRecipe, "dinner") : d.dinner;
+
+          const morningSnack = msRecipe ? recipeToMealItem(msRecipe, "morningSnack") : (msSnack ? normalizeMealItem(msSnack) : d.morningSnack);
+          const afternoonSnack = asRecipe ? recipeToMealItem(asRecipe, "afternoonSnack") : (asSnack ? normalizeMealItem(asSnack) : d.afternoonSnack);
+
+          const updated: DayMealPlan = {
+            ...d,
+            breakfast,
+            morningSnack,
+            lunch,
+            afternoonSnack,
+            dinner,
+          };
+
+          return recalcDayPlan(updated);
+        });
+
+        await setWeekPlanWhole({ weekPlan: nextWeek });
+      } catch (e) {
+        console.error("[mealPlan] createPersonalPlanWithCoach:failed", { e });
+        setLastError("Coach couldn't build a plan right now. Please try again.");
+        throw e;
+      }
+    },
+    [setWeekPlanWhole, weekPlan],
+  );
+
   const value = useMemo<MealPlanState>(
     () => ({
       weekPlan,
       isHydrating,
       lastError,
       setMeal,
+      setWeekPlan: setWeekPlanWhole,
       resetToDefault,
       getCandidatesForSlot,
       swapMealWithAgent,
+      createPersonalPlanWithCoach,
     }),
-    [getCandidatesForSlot, isHydrating, lastError, resetToDefault, setMeal, swapMealWithAgent, weekPlan],
+    [createPersonalPlanWithCoach, getCandidatesForSlot, isHydrating, lastError, resetToDefault, setMeal, setWeekPlanWhole, swapMealWithAgent, weekPlan],
   );
 
   return value;
