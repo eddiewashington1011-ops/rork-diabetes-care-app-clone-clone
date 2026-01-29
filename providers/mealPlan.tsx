@@ -78,7 +78,7 @@ function buildOfflinePlan(input: {
   cookingSkill: string;
   targetCarbsPerDayG: number;
   dayNames: string[];
-}): { dayName: string; breakfastRecipeId?: string; lunchRecipeId?: string; dinnerRecipeId?: string; morningSnackName?: string; afternoonSnackName?: string }[] {
+}): CoachDay[] {
   const seed = hash32(`${input.goal}::${input.cookingSkill}::${input.targetCarbsPerDayG}`);
   const rng = mulberry32(seed);
 
@@ -189,31 +189,25 @@ const SwapSchema = z
     recipeId: z.string().optional(),
     snackName: z.string().optional(),
     justification: z.string().min(1).max(280),
-  })
-  .strict();
+  });
 
-const CoachPlanSchema = z
-  .object({
-    days: z
-      .array(
-        z
-          .object({
-            dayName: z.string().min(1),
-            breakfastRecipeId: z.string().optional(),
-            morningSnackRecipeId: z.string().optional(),
-            morningSnackName: z.string().optional(),
-            lunchRecipeId: z.string().optional(),
-            afternoonSnackRecipeId: z.string().optional(),
-            afternoonSnackName: z.string().optional(),
-            dinnerRecipeId: z.string().optional(),
-          })
-          .strict(),
-      )
-      .min(7)
-      .max(7),
-    summary: z.string().min(1).max(320),
-  })
-  .strict();
+const CoachDaySchema = z.object({
+  dayName: z.string().min(1),
+  breakfastRecipeId: z.string().optional(),
+  morningSnackRecipeId: z.string().optional(),
+  morningSnackName: z.string().optional(),
+  lunchRecipeId: z.string().optional(),
+  afternoonSnackRecipeId: z.string().optional(),
+  afternoonSnackName: z.string().optional(),
+  dinnerRecipeId: z.string().optional(),
+});
+
+type CoachDay = z.infer<typeof CoachDaySchema>;
+
+const CoachPlanSchema = z.object({
+  days: z.array(CoachDaySchema).min(7).max(7),
+  summary: z.string().min(1).max(320),
+});
 
 
 async function agentPickSwap(input: {
@@ -445,11 +439,12 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         "Rules: Use variety across the week. Avoid repeating the same dinner more than 2x. Prefer lower carbs for snacks. Return exactly 7 days.";
 
       let isOffline = false;
-      let generatedDays: z.infer<typeof CoachPlanSchema>["days"] | null = null;
+      let generatedDays: CoachDay[] = [];
+
+      setLastError(null);
+      console.log("[mealPlan] createPersonalPlanWithCoach: calling generateObject");
 
       try {
-        setLastError(null);
-        console.log("[mealPlan] createPersonalPlanWithCoach: calling generateObject");
         const res = await generateObject({
           messages: [
             { role: "user", content: userPrompt },
@@ -457,8 +452,20 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
           schema: CoachPlanSchema,
         });
 
-        console.log("[mealPlan] createPersonalPlanWithCoach:generated", { summary: res.summary, days: res.days.length });
-        generatedDays = res.days;
+        console.log("[mealPlan] createPersonalPlanWithCoach:generated", { summary: res.summary, days: res.days?.length });
+        
+        if (res.days && Array.isArray(res.days) && res.days.length === 7) {
+          generatedDays = res.days;
+        } else {
+          console.warn("[mealPlan] createPersonalPlanWithCoach: AI returned invalid days, using offline fallback");
+          isOffline = true;
+          generatedDays = buildOfflinePlan({
+            goal: input.goal,
+            cookingSkill: input.cookingSkill,
+            targetCarbsPerDayG: input.targetCarbsPerDayG,
+            dayNames,
+          });
+        }
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
         console.error("[mealPlan] createPersonalPlanWithCoach:AI failed, using offline fallback", { error: errorMessage });
@@ -475,10 +482,13 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         setLastError("Dia is offline — I built a plan from your cookbook instead.");
       }
 
+      console.log("[mealPlan] createPersonalPlanWithCoach: generatedDays", { count: generatedDays.length, dayNames: generatedDays.map(d => d.dayName) });
+
       try {
 
         const nextWeek = weekPlan.map((d) => {
-          const dayPick = generatedDays?.find((x: z.infer<typeof CoachPlanSchema>["days"][number]) => x.dayName === d.dayName) ?? null;
+          const dayPick = generatedDays.find((x) => x.dayName === d.dayName) ?? null;
+          console.log("[mealPlan] processing day", { dayName: d.dayName, found: !!dayPick, dayPick });
           if (!dayPick) return d;
 
           const breakfastRecipe = recipes.find((r) => r.id === dayPick.breakfastRecipeId) ?? null;
