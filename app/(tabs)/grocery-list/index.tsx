@@ -10,7 +10,7 @@ import {
   RefreshControl,
   Animated,
 } from "react-native";
-import { Check, ShoppingCart, Package, RotateCcw, ChevronDown, ListChecks } from "lucide-react-native";
+import { Check, ShoppingCart, Package, RotateCcw, ChevronDown, ListChecks, Users, Minus, Plus } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { useGroceryList } from "@/providers/groceryList";
@@ -18,7 +18,7 @@ import { useGroceryList } from "@/providers/groceryList";
 type Mode = "shop" | "have";
 
 export default function GroceryListScreen() {
-  const { sections, isHydrating, lastError, toggleHave, resetAllToShop } = useGroceryList();
+  const { sections, isHydrating, lastError, toggleHave, resetAllToShop, servings, setServings } = useGroceryList();
 
   const [mode, setMode] = useState<Mode>("shop");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -98,6 +98,38 @@ export default function GroceryListScreen() {
           >
             <RotateCcw size={16} color={Colors.light.textSecondary} />
           </TouchableOpacity>
+        </View>
+
+        {/* Servings Selector */}
+        <View style={styles.servingsRow} testID="grocery-servings-selector">
+          <View style={styles.servingsLabel}>
+            <Users size={16} color={Colors.light.tint} />
+            <Text style={styles.servingsText}>Shopping for</Text>
+          </View>
+          <View style={styles.servingsControl}>
+            <TouchableOpacity
+              style={[styles.servingsBtn, servings <= 1 && styles.servingsBtnDisabled]}
+              onPress={() => setServings(servings - 1)}
+              disabled={servings <= 1}
+              activeOpacity={0.7}
+              testID="grocery-servings-minus"
+            >
+              <Minus size={14} color={servings <= 1 ? Colors.light.border : Colors.light.text} />
+            </TouchableOpacity>
+            <View style={styles.servingsValue}>
+              <Text style={styles.servingsNumber}>{servings}</Text>
+              <Text style={styles.servingsPeopleText}>{servings === 1 ? "person" : "people"}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.servingsBtn, servings >= 10 && styles.servingsBtnDisabled]}
+              onPress={() => setServings(servings + 1)}
+              disabled={servings >= 10}
+              activeOpacity={0.7}
+              testID="grocery-servings-plus"
+            >
+              <Plus size={14} color={servings >= 10 ? Colors.light.border : Colors.light.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {lastError ? (
@@ -321,6 +353,64 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.danger,
     fontWeight: "600" as const,
+  },
+  servingsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.light.tint + "08",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.tint + "20",
+  },
+  servingsLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  servingsText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.light.text,
+  },
+  servingsControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  servingsBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  servingsBtnDisabled: {
+    opacity: 0.5,
+  },
+  servingsValue: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+    paddingHorizontal: 8,
+    minWidth: 70,
+    justifyContent: "center",
+  },
+  servingsNumber: {
+    fontSize: 18,
+    fontWeight: "800" as const,
+    color: Colors.light.tint,
+  },
+  servingsPeopleText: {
+    fontSize: 12,
+    fontWeight: "500" as const,
+    color: Colors.light.textSecondary,
   },
   tabBar: {
     flexDirection: "row",

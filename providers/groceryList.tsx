@@ -25,7 +25,9 @@ type GroceryListState = {
   sections: { id: GrocerySectionId; title: string; items: GroceryItem[] }[];
   isHydrating: boolean;
   lastError: string | null;
+  servings: number;
 
+  setServings: (count: number) => Promise<void>;
   setStatus: (input: { key: string; status: GroceryStatus }) => Promise<void>;
   toggleHave: (key: string) => Promise<void>;
   resetAllToShop: () => Promise<void>;
@@ -35,6 +37,7 @@ const STORAGE_KEY = "diacare:grocery_list:v1" as const;
 
 type StoredState = {
   statuses: Record<string, GroceryStatus>;
+  servings: number;
 };
 
 const SECTION_TITLES: Record<GrocerySectionId, string> = {
@@ -197,6 +200,7 @@ export const [GroceryListProvider, useGroceryList] = createContextHook<GroceryLi
   const { weekPlan } = useMealPlan();
 
   const [storedStatuses, setStoredStatuses] = useState<Record<string, GroceryStatus>>({});
+  const [servings, setServingsState] = useState<number>(2);
   const [isHydrating, setIsHydrating] = useState<boolean>(true);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -218,8 +222,10 @@ export const [GroceryListProvider, useGroceryList] = createContextHook<GroceryLi
       const parsed = JSON.parse(raw) as unknown;
       const cast = parsed as Partial<StoredState>;
       const statuses = typeof cast?.statuses === "object" && cast.statuses ? (cast.statuses as Record<string, GroceryStatus>) : {};
-      console.log("[groceryList] hydrate: loaded", { keys: Object.keys(statuses).length });
+      const loadedServings = typeof cast?.servings === "number" ? cast.servings : 2;
+      console.log("[groceryList] hydrate: loaded", { keys: Object.keys(statuses).length, servings: loadedServings });
       setStoredStatuses(statuses);
+      setServingsState(loadedServings);
     } catch (e) {
       console.error("[groceryList] hydrate: failed", { e });
       setLastError("Could not load grocery list state.");
@@ -233,11 +239,11 @@ export const [GroceryListProvider, useGroceryList] = createContextHook<GroceryLi
     hydrate();
   }, [hydrate]);
 
-  const persist = useCallback(async (next: Record<string, GroceryStatus>) => {
+  const persist = useCallback(async (next: Record<string, GroceryStatus>, nextServings: number) => {
     try {
-      const payload: StoredState = { statuses: next };
+      const payload: StoredState = { statuses: next, servings: nextServings };
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      console.log("[groceryList] persisted", { keys: Object.keys(next).length });
+      console.log("[groceryList] persisted", { keys: Object.keys(next).length, servings: nextServings });
     } catch (e) {
       console.error("[groceryList] persist: failed", { e });
       setLastError("Could not save grocery list changes. Please try again.");
@@ -270,16 +276,29 @@ export const [GroceryListProvider, useGroceryList] = createContextHook<GroceryLi
       .filter((s) => s.items.length > 0);
   }, [items]);
 
+  const setServings = useCallback(
+    async (count: number) => {
+      const clamped = Math.max(1, Math.min(10, count));
+      console.log("[groceryList] setServings", { count: clamped });
+      setServingsState(clamped);
+      setStoredStatuses((prev) => {
+        void persist(prev, clamped);
+        return prev;
+      });
+    },
+    [persist],
+  );
+
   const setStatus = useCallback(
     async (input: { key: string; status: GroceryStatus }) => {
       console.log("[groceryList] setStatus", input);
       setStoredStatuses((prev) => {
         const next = { ...prev, [input.key]: input.status };
-        void persist(next);
+        void persist(next, servings);
         return next;
       });
     },
-    [persist],
+    [persist, servings],
   );
 
   const toggleHave = useCallback(
@@ -289,25 +308,27 @@ export const [GroceryListProvider, useGroceryList] = createContextHook<GroceryLi
         const nextStatus: GroceryStatus = current === "have" ? "shop" : "have";
         const next = { ...prev, [key]: nextStatus };
         console.log("[groceryList] toggleHave", { key, from: current, to: nextStatus });
-        void persist(next);
+        void persist(next, servings);
         return next;
       });
     },
-    [persist],
+    [persist, servings],
   );
 
   const resetAllToShop = useCallback(async () => {
     console.log("[groceryList] resetAllToShop");
     setLastError(null);
     setStoredStatuses({});
-    await persist({});
-  }, [persist]);
+    await persist({}, servings);
+  }, [persist, servings]);
 
   return {
     items,
     sections,
     isHydrating,
     lastError,
+    servings,
+    setServings,
     setStatus,
     toggleHave,
     resetAllToShop,
