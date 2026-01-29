@@ -26,6 +26,43 @@ function BottomCTAInner({ title, subtitle, onPress, disabled, bottomOffset, test
   const bottomPad = Math.max(12, insets.bottom + 10);
   const resolvedBottomOffset = bottomOffset ?? (Platform.OS === "web" ? 68 : 64);
 
+  const content = (
+    <View style={styles.innerRow}>
+      <View style={styles.textCol}>
+        <Text style={styles.title} numberOfLines={1} testID={testID ? `${testID}-title` : undefined}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={1} testID={testID ? `${testID}-subtitle` : undefined}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+
+      <TouchableOpacity
+        onPress={onPressSafe}
+        activeOpacity={0.85}
+        disabled={disabled}
+        style={[styles.button, disabled && styles.buttonDisabled]}
+        testID={testID}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={styles.buttonText}>{title}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (Platform.OS === "web") {
+    return (
+      <View
+        style={[styles.root, styles.shellWeb, { bottom: resolvedBottomOffset, paddingBottom: bottomPad }]}
+        testID={testID ? `${testID}-root` : undefined}
+      >
+        {content}
+      </View>
+    );
+  }
+
   return (
     <View
       pointerEvents="box-none"
@@ -33,33 +70,11 @@ function BottomCTAInner({ title, subtitle, onPress, disabled, bottomOffset, test
       testID={testID ? `${testID}-root` : undefined}
     >
       <BlurView
-        intensity={Platform.OS === "web" ? 14 : 28}
+        intensity={28}
         tint="light"
-        pointerEvents="auto"
         style={[styles.shell, { paddingBottom: bottomPad }]}
       >
-        <View style={styles.innerRow}>
-          <View style={styles.textCol}>
-            <Text style={styles.title} numberOfLines={1} testID={testID ? `${testID}-title` : undefined}>
-              {title}
-            </Text>
-            {subtitle ? (
-              <Text style={styles.subtitle} numberOfLines={1} testID={testID ? `${testID}-subtitle` : undefined}>
-                {subtitle}
-              </Text>
-            ) : null}
-          </View>
-
-          <TouchableOpacity
-            onPress={onPressSafe}
-            activeOpacity={0.9}
-            disabled={disabled}
-            style={[styles.button, disabled && styles.buttonDisabled]}
-            testID={testID}
-          >
-            <Text style={styles.buttonText}>{title}</Text>
-          </TouchableOpacity>
-        </View>
+        {content}
       </BlurView>
     </View>
   );
@@ -82,6 +97,13 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingHorizontal: 16,
     backgroundColor: "rgba(255,255,255,0.72)",
+  },
+  shellWeb: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+    paddingTop: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.95)",
   },
   innerRow: {
     flexDirection: "row",
