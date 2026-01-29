@@ -49,6 +49,53 @@ function pickSnackByName(name: string | undefined): MealItem | null {
   return QUICK_SNACKS.find((s) => s.name.trim().toLowerCase() === needle) ?? null;
 }
 
+function hash32(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t += 0x6d2b79f5;
+    let x = t;
+    x = Math.imul(x ^ (x >>> 15), x | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pick<T>(rng: () => number, arr: readonly T[]): T {
+  return arr[Math.floor(rng() * arr.length)] as T;
+}
+
+function buildOfflinePlan(input: {
+  goal: string;
+  cookingSkill: string;
+  targetCarbsPerDayG: number;
+  dayNames: string[];
+}): { dayName: string; breakfastRecipeId?: string; lunchRecipeId?: string; dinnerRecipeId?: string; morningSnackName?: string; afternoonSnackName?: string }[] {
+  const seed = hash32(`${input.goal}::${input.cookingSkill}::${input.targetCarbsPerDayG}`);
+  const rng = mulberry32(seed);
+
+  const breakfastPool = recipes.filter((r) => r.category === "breakfast");
+  const lunchPool = recipes.filter((r) => r.category === "lunch");
+  const dinnerPool = recipes.filter((r) => r.category === "dinner");
+
+  return input.dayNames.map((dayName) => ({
+    dayName,
+    breakfastRecipeId: breakfastPool.length > 0 ? pick(rng, breakfastPool).id : undefined,
+    lunchRecipeId: lunchPool.length > 0 ? pick(rng, lunchPool).id : undefined,
+    dinnerRecipeId: dinnerPool.length > 0 ? pick(rng, dinnerPool).id : undefined,
+    morningSnackName: pick(rng, QUICK_SNACKS).name,
+    afternoonSnackName: pick(rng, QUICK_SNACKS).name,
+  }));
+}
+
 function safeInt(n: number, fallback: number): number {
   if (!Number.isFinite(n)) return fallback;
   return Math.max(0, Math.round(n));
@@ -397,6 +444,9 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         `Snack names: ${JSON.stringify(QUICK_SNACKS.map((s) => s.name))}\n` +
         "Rules: Use variety across the week. Avoid repeating the same dinner more than 2x. Prefer lower carbs for snacks. Return exactly 7 days.";
 
+      let isOffline = false;
+      let generatedDays: z.infer<typeof CoachPlanSchema>["days"] | null = null;
+
       try {
         setLastError(null);
         console.log("[mealPlan] createPersonalPlanWithCoach: calling generateObject");
@@ -408,20 +458,38 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         });
 
         console.log("[mealPlan] createPersonalPlanWithCoach:generated", { summary: res.summary, days: res.days.length });
+        generatedDays = res.days;
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error("[mealPlan] createPersonalPlanWithCoach:AI failed, using offline fallback", { error: errorMessage });
+        isOffline = true;
+        generatedDays = buildOfflinePlan({
+          goal: input.goal,
+          cookingSkill: input.cookingSkill,
+          targetCarbsPerDayG: input.targetCarbsPerDayG,
+          dayNames,
+        });
+      }
+
+      if (isOffline) {
+        setLastError("Dia is offline — I built a plan from your cookbook instead.");
+      }
+
+      try {
 
         const nextWeek = weekPlan.map((d) => {
-          const pick = res.days.find((x) => x.dayName === d.dayName) ?? null;
-          if (!pick) return d;
+          const dayPick = generatedDays?.find((x: z.infer<typeof CoachPlanSchema>["days"][number]) => x.dayName === d.dayName) ?? null;
+          if (!dayPick) return d;
 
-          const breakfastRecipe = recipes.find((r) => r.id === pick.breakfastRecipeId) ?? null;
-          const lunchRecipe = recipes.find((r) => r.id === pick.lunchRecipeId) ?? null;
-          const dinnerRecipe = recipes.find((r) => r.id === pick.dinnerRecipeId) ?? null;
+          const breakfastRecipe = recipes.find((r) => r.id === dayPick.breakfastRecipeId) ?? null;
+          const lunchRecipe = recipes.find((r) => r.id === dayPick.lunchRecipeId) ?? null;
+          const dinnerRecipe = recipes.find((r) => r.id === dayPick.dinnerRecipeId) ?? null;
 
-          const msRecipe = recipes.find((r) => r.id === pick.morningSnackRecipeId) ?? null;
-          const asRecipe = recipes.find((r) => r.id === pick.afternoonSnackRecipeId) ?? null;
+          const msRecipe = recipes.find((r) => r.id === dayPick.morningSnackRecipeId) ?? null;
+          const asRecipe = recipes.find((r) => r.id === dayPick.afternoonSnackRecipeId) ?? null;
 
-          const msSnack = pickSnackByName(pick.morningSnackName);
-          const asSnack = pickSnackByName(pick.afternoonSnackName);
+          const msSnack = pickSnackByName(dayPick.morningSnackName);
+          const asSnack = pickSnackByName(dayPick.afternoonSnackName);
 
           const breakfast = breakfastRecipe ? recipeToMealItem(breakfastRecipe, "breakfast") : d.breakfast;
           const lunch = lunchRecipe ? recipeToMealItem(lunchRecipe, "lunch") : d.lunch;
@@ -443,10 +511,11 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         });
 
         await setWeekPlanWhole({ weekPlan: nextWeek });
+        console.log("[mealPlan] createPersonalPlanWithCoach:done", { isOffline });
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        console.error("[mealPlan] createPersonalPlanWithCoach:failed", { error: errorMessage });
-        setLastError(`Dia could not build a plan: ${errorMessage.slice(0, 80)}${errorMessage.length > 80 ? "..." : ""}`);
+        console.error("[mealPlan] createPersonalPlanWithCoach:persist failed", { error: errorMessage });
+        setLastError(`Could not save your plan: ${errorMessage.slice(0, 60)}`);
         throw e;
       }
     },
