@@ -206,31 +206,60 @@ export default function HomeScreen() {
   return (
     <View style={styles.screen} testID="home-screen">
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="home-scroll">
-      <LinearGradient
-        colors={["#0D9488", "#0F766E"]}
-        style={styles.heroSection}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.heroContent}>
-          <Text style={styles.greeting}>Good Morning!</Text>
-          <Text style={styles.heroTitle}>Dia Care</Text>
-          <Text style={styles.heroSubtitle}>
-            Your personal diabetes care companion
-          </Text>
-        </View>
-        <View style={styles.statsRow}>
-          {quickStats.map((stat, index) => (
-            <View key={index} style={styles.statCard}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-              <Text style={styles.statSublabel}>{stat.sublabel}</Text>
-            </View>
-          ))}
-        </View>
-      </LinearGradient>
+        <LinearGradient
+          colors={["#0D9488", "#0F766E"]}
+          style={styles.heroSection}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.heroContent}>
+            <Text style={styles.greeting}>Welcome back</Text>
+            <Text style={styles.heroTitle}>Dia Care</Text>
+            <Text style={styles.heroSubtitle}>I’m Dia — your coach & check-in buddy.</Text>
+          </View>
+          <View style={styles.statsRow}>
+            {quickStats.map((stat, index) => (
+              <View key={index} style={styles.statCard}>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+                <Text style={styles.statSublabel}>{stat.sublabel}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
 
-      <View style={styles.content}>
+        <View style={styles.content}>
+          <View style={styles.diaCard} testID="home-dia-card">
+            <View style={styles.diaTopRow}>
+              <View style={styles.diaAvatar}>
+                <Text style={styles.diaAvatarText}>D</Text>
+              </View>
+              <View style={styles.diaTextCol}>
+                <Text style={styles.diaTitle}>Hi, I’m Dia</Text>
+                <Text style={styles.diaSub} numberOfLines={2}>
+                  Tell me your goal and I’ll build a diabetes-friendly plan — meals, grocery list, and simple workouts.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.diaActionsRow}>
+              <TouchableOpacity
+                style={[styles.diaActionBtn, styles.diaActionPrimary]}
+                onPress={() => router.push("/(tabs)/meal-plan")}
+                activeOpacity={0.9}
+                testID="home-dia-start-meal-plan"
+              >
+                <Text style={styles.diaActionPrimaryText}>Start meal plan</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.diaActionBtn}
+                onPress={() => router.push("/(tabs)/grocery-list")}
+                activeOpacity={0.9}
+                testID="home-dia-open-grocery"
+              >
+                <Text style={styles.diaActionText}>Grocery list</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         <View style={styles.engagementWrap}>
           <View style={styles.engagementHeader}>
             <View style={styles.engagementTitleRow}>
@@ -676,7 +705,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 16,
   },
   engagementWrap: {
     backgroundColor: Colors.light.surface,
@@ -685,6 +714,76 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
     marginBottom: 22,
+  },
+  diaCard: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    marginBottom: 14,
+  },
+  diaTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  diaAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: Colors.light.sapphireLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  diaAvatarText: {
+    fontSize: 16,
+    fontWeight: "900" as const,
+    color: Colors.light.sapphire,
+  },
+  diaTextCol: {
+    flex: 1,
+  },
+  diaTitle: {
+    fontSize: 14,
+    fontWeight: "900" as const,
+    color: Colors.light.text,
+    marginBottom: 3,
+  },
+  diaSub: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.light.textSecondary,
+    lineHeight: 16,
+  },
+  diaActionsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+  },
+  diaActionBtn: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    borderRadius: 14,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  diaActionPrimary: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  diaActionText: {
+    fontSize: 12,
+    fontWeight: "900" as const,
+    color: Colors.light.text,
+  },
+  diaActionPrimaryText: {
+    fontSize: 12,
+    fontWeight: "900" as const,
+    color: "#fff",
   },
   engagementHeader: {
     flexDirection: "row",
