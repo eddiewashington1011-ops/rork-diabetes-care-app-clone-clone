@@ -357,13 +357,12 @@ export default function RecipesScreen() {
         animationType="slide"
         onRequestClose={() => setCoachOpen(false)}
       >
-        <View style={styles.modalOverlay} testID="cookbook-coach-overlay">
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setCoachOpen(false)}
-            testID="cookbook-coach-overlay-dismiss"
-          />
-          <View style={styles.modalCard} testID="cookbook-coach-modal">
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setCoachOpen(false)}
+          testID="cookbook-coach-overlay"
+        >
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()} testID="cookbook-coach-modal">
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Dia</Text>
@@ -405,7 +404,12 @@ export default function RecipesScreen() {
               />
 
               <TouchableOpacity
-                onPress={onGenerate}
+                onPress={() => {
+                  console.log("[cookbook] generate button pressed", { isGenerating });
+                  if (!isGenerating) {
+                    onGenerate();
+                  }
+                }}
                 activeOpacity={0.9}
                 style={[styles.modalButton, isGenerating && { opacity: 0.7 }]}
                 disabled={isGenerating}
@@ -423,8 +427,8 @@ export default function RecipesScreen() {
 
               {lastError ? <Text style={styles.modalErrorText}>{lastError}</Text> : null}
             </KeyboardAvoidingView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <BottomCTA

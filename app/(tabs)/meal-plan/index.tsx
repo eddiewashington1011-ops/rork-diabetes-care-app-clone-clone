@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronRight, Flame, Wheat, Lightbulb, Pencil, RefreshCw, RotateCcw, X, Wand2, CheckCircle2 } from "lucide-react-native";
@@ -394,8 +395,8 @@ export default function MealPlanScreen() {
       </Modal>
 
       <Modal visible={coachOpen} transparent animationType="slide" onRequestClose={closeCoach}>
-        <View style={styles.modalBackdrop} testID="meal-plan-coach-modal">
-          <View style={styles.coachModalCard}>
+        <Pressable style={styles.modalBackdrop} onPress={closeCoach} testID="meal-plan-coach-modal">
+          <Pressable style={styles.coachModalCard} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTitle}>Dia</Text>
@@ -503,9 +504,10 @@ export default function MealPlanScreen() {
               style={[styles.coachCta, coachBusy && styles.coachCtaDisabled]}
               onPress={() => {
                 console.log("[meal-plan] coach-generate-plan:onPress", { coachBusy });
-                onRunCoach();
+                if (!coachBusy) {
+                  onRunCoach();
+                }
               }}
-              onPressIn={() => console.log("[meal-plan] coach-generate-plan:onPressIn")}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               disabled={coachBusy}
               activeOpacity={0.85}
@@ -515,8 +517,8 @@ export default function MealPlanScreen() {
               {coachBusy ? <ActivityIndicator color="#fff" /> : <CheckCircle2 size={18} color="#fff" />}
               <Text style={styles.coachCtaText}>{coachBusy ? "Building your plan…" : "Create my meal plan"}</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
