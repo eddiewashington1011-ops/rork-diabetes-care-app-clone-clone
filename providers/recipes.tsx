@@ -295,7 +295,51 @@ function buildVideoPackPrompt(): string {
   );
 }
 
-async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<ShortVideoPack> {
+function buildFallbackVideoPack(recipe: CoachRecipe): ShortVideoPack {
+  return {
+    videoScript: [
+      { timecode: "[00:00-00:03]", content: `Hook: Show the finished ${recipe.title} in a stunning hero shot` },
+      { timecode: "[00:03-00:08]", content: "Display ingredients spread across counter with text overlay showing nutrition" },
+      { timecode: "[00:08-00:15]", content: "Quick cuts of prep work - chopping, measuring, mixing" },
+      { timecode: "[00:15-00:25]", content: "Main cooking action with sizzling sounds and steam" },
+      { timecode: "[00:25-00:35]", content: "Plating the dish with garnishes" },
+      { timecode: "[00:35-00:45]", content: "Final reveal with fork/bite shot and nutrition facts overlay" },
+    ],
+    verticalStoryboard: [
+      { shotNumber: 1, duration: "2-3s", angle: "overhead", action: "Hero shot of finished dish", onScreenText: recipe.title, soundCue: "Music hit" },
+      { shotNumber: 2, duration: "3-4s", angle: "slow pan", action: "Ingredients spread out", onScreenText: `${recipe.carbsPerServing}g carbs per serving`, soundCue: "Upbeat music" },
+      { shotNumber: 3, duration: "2-3s", angle: "close-up", action: "Chopping vegetables", onScreenText: "Fresh ingredients", soundCue: "Chopping sounds" },
+      { shotNumber: 4, duration: "3-4s", angle: "eye-level", action: "Adding to pan", onScreenText: "Diabetes-friendly", soundCue: "Sizzle" },
+      { shotNumber: 5, duration: "2-3s", angle: "close-up", action: "Stirring/cooking", onScreenText: "No added sugar", soundCue: "Cooking sounds" },
+      { shotNumber: 6, duration: "3-4s", angle: "overhead", action: "Plating the dish", onScreenText: `${recipe.calories} calories`, soundCue: "Music build" },
+      { shotNumber: 7, duration: "2-3s", angle: "45-degree", action: "Adding garnish", onScreenText: "High fiber", soundCue: "Soft placement" },
+      { shotNumber: 8, duration: "3-4s", angle: "close-up", action: "Fork taking bite", onScreenText: "Try this recipe!", soundCue: "Music finale" },
+    ],
+    videoGenerationPrompts: [
+      `Cinematic overhead shot of ${recipe.title}, steam rising, professional food photography lighting, 9:16 vertical format`,
+      `Fresh ingredients spread on marble counter, ${recipe.ingredients.slice(0, 3).join(", ")}, soft natural lighting, vertical format`,
+      `Close-up of hands chopping vegetables on wooden cutting board, shallow depth of field, satisfying cooking video style`,
+      `Eye-level shot of ingredients being added to hot pan, steam and sizzle visible, dramatic kitchen lighting`,
+      `Close-up of wooden spoon stirring in pan, steam rising, warm color tones, professional food video`,
+      `Overhead view of plating food onto white ceramic dish, careful precise movements, clean background`,
+      `45-degree angle of garnishing dish with fresh herbs, soft focus background, restaurant quality presentation`,
+      `Macro close-up of fork lifting perfect bite, steam visible, slow motion feel, appetizing food porn aesthetic`,
+    ],
+    finalHeroShotPrompt: `Professional food photography of ${recipe.title}, perfectly plated on elegant dish, soft diffused lighting from side, shallow depth of field with blurred background, garnished with fresh herbs, steam gently rising, warm inviting color palette, 9:16 vertical aspect ratio, restaurant quality presentation, makes viewer hungry`,
+    autoCaptions: [
+      `${recipe.title} - only ${recipe.carbsPerServing}g carbs!`,
+      "Perfect for blood sugar control",
+      "No added sugars in this recipe",
+      `${recipe.calories} calories per serving`,
+      `Ready in ${recipe.prepTime + recipe.cookTime} minutes`,
+      "Diabetes-friendly comfort food",
+    ],
+    cta: "Save this recipe and follow for more diabetes-friendly meals!",
+    hashtags: ["#diabetesfriendly", "#lowcarb", "#healthyrecipes", "#bloodsugar", "#diabetesawareness", "#healthyeating", "#mealprep", "#lowgi"],
+  };
+}
+
+async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<{ videoPack: ShortVideoPack; isOffline: boolean; errorMessage?: string }> {
   const system = buildVideoPackPrompt();
   const userPrompt =
     `${system}\n\n` +
@@ -311,22 +355,36 @@ async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<ShortVideoPa
 
   console.log("[recipes] agentGenerateVideoPack: calling generateObject", { title: recipe.title });
 
-  const res = await generateObject({
-    messages: [{ role: "user", content: userPrompt }],
-    schema: VideoPackSchema,
-  });
+  try {
+    const res = await generateObject({
+      messages: [{ role: "user", content: userPrompt }],
+      schema: VideoPackSchema,
+    });
 
-  console.log("[recipes] agentGenerateVideoPack: got response", { shots: res.verticalStoryboard.length });
+    console.log("[recipes] agentGenerateVideoPack: got response", { shots: res.verticalStoryboard.length });
 
-  return {
-    videoScript: res.videoScript,
-    verticalStoryboard: res.verticalStoryboard,
-    videoGenerationPrompts: res.videoGenerationPrompts,
-    finalHeroShotPrompt: res.finalHeroShotPrompt,
-    autoCaptions: res.autoCaptions,
-    cta: res.cta,
-    hashtags: res.hashtags,
-  };
+    return {
+      videoPack: {
+        videoScript: res.videoScript,
+        verticalStoryboard: res.verticalStoryboard,
+        videoGenerationPrompts: res.videoGenerationPrompts,
+        finalHeroShotPrompt: res.finalHeroShotPrompt,
+        autoCaptions: res.autoCaptions,
+        cta: res.cta,
+        hashtags: res.hashtags,
+      },
+      isOffline: false,
+    };
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    const isOffline = isNetworkOrOfflineError(errorMessage);
+    console.error("[recipes] agentGenerateVideoPack: AI call failed; using fallback", { error: errorMessage, isOffline });
+    return {
+      videoPack: buildFallbackVideoPack(recipe),
+      isOffline: true,
+      errorMessage: isOffline ? "Dia is offline" : errorMessage,
+    };
+  }
 }
 
 function buildAgentSystemPrompt(): string {
@@ -729,29 +787,30 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
       console.log("[recipes] generateVideoPack:start", { id, title: recipe.title });
       setLastError(null);
 
-      try {
-        const videoPack = await agentGenerateVideoPack(recipe);
+      const { videoPack, isOffline, errorMessage } = await agentGenerateVideoPack(recipe);
 
-        const updated: CoachRecipe = {
-          ...recipe,
-          shortVideoPack: videoPack,
-          source: "saved",
-        };
-
-        setSavedRecipes((prev) => {
-          const next = [updated, ...prev.filter((r) => r.id !== id)];
-          void persist(next);
-          return next;
-        });
-
-        console.log("[recipes] generateVideoPack:done", { id });
-        return videoPack;
-      } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        console.error("[recipes] generateVideoPack:failed", { error: errorMessage });
-        setLastError("Dia couldn't generate the video pack. She may be offline.");
-        return null;
+      if (isOffline) {
+        const msg = errorMessage
+          ? `Dia had trouble generating video pack (${errorMessage.slice(0, 40)}${errorMessage.length > 40 ? '...' : ''}). Using fallback.`
+          : "Dia had trouble generating video pack. Using fallback.";
+        setLastError(msg);
+        console.log("[recipes] generateVideoPack: using offline fallback", { errorMessage });
       }
+
+      const updated: CoachRecipe = {
+        ...recipe,
+        shortVideoPack: videoPack,
+        source: "saved",
+      };
+
+      setSavedRecipes((prev) => {
+        const next = [updated, ...prev.filter((r) => r.id !== id)];
+        void persist(next);
+        return next;
+      });
+
+      console.log("[recipes] generateVideoPack:done", { id, isOffline });
+      return videoPack;
     },
     [getRecipeById, persist],
   );
