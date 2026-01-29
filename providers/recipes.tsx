@@ -414,7 +414,7 @@ function localFallbackRecipe(input: { goal: string; preferences: string }): Omit
   };
 }
 
-async function agentGenerateRecipe(input: { goal: string; preferences: string }): Promise<Omit<CoachRecipe, "id" | "image" | "source">> {
+async function agentGenerateRecipe(input: { goal: string; preferences: string }): Promise<{ recipe: Omit<CoachRecipe, "id" | "image" | "source">; isOffline: boolean; errorMessage?: string }> {
   const system = buildAgentSystemPrompt();
   const userPrompt =
     `${system}\n\n` +
@@ -437,30 +437,37 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
     console.log("[recipes] agentGenerateRecipe: got response", { title: res.title });
 
     return {
-      title: res.title,
-      description: res.description,
-      category: res.category,
-      prepTime: res.prepTime,
-      cookTime: res.cookTime,
-      servings: res.servings,
-      calories: res.calories,
-      carbsPerServing: res.carbsPerServing,
-      ingredients: res.ingredients,
-      instructions: res.instructions,
-      tags: res.tags,
-      glycemicNotes: res.glycemicNotes,
-      fiberG: res.fiberG,
-      sugarG: res.sugarG,
-      proteinG: res.proteinG,
-      fatG: res.fatG,
-      glycemicLoad: res.glycemicLoad,
-      skillLevel: res.skillLevel,
-      origin: "Dia",
+      recipe: {
+        title: res.title,
+        description: res.description,
+        category: res.category,
+        prepTime: res.prepTime,
+        cookTime: res.cookTime,
+        servings: res.servings,
+        calories: res.calories,
+        carbsPerServing: res.carbsPerServing,
+        ingredients: res.ingredients,
+        instructions: res.instructions,
+        tags: res.tags,
+        glycemicNotes: res.glycemicNotes,
+        fiberG: res.fiberG,
+        sugarG: res.sugarG,
+        proteinG: res.proteinG,
+        fatG: res.fatG,
+        glycemicLoad: res.glycemicLoad,
+        skillLevel: res.skillLevel,
+        origin: "Dia",
+      },
+      isOffline: false,
     };
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : String(e);
     console.error("[recipes] agentGenerateRecipe: AI call failed; using offline fallback", { error: errorMessage });
-    return localFallbackRecipe(input);
+    return {
+      recipe: localFallbackRecipe(input),
+      isOffline: true,
+      errorMessage,
+    };
   }
 }
 
@@ -604,9 +611,14 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
       console.log("[recipes] createRecipeWithAgent:start", input);
       setLastError(null);
 
-      const generated = await agentGenerateRecipe(input);
-      if ((generated.origin ?? "").toLowerCase().includes("offline")) {
-        setLastError("Dia is offline right now — I made a quick recipe anyway.");
+      const { recipe: generated, isOffline, errorMessage } = await agentGenerateRecipe(input);
+      
+      if (isOffline) {
+        const msg = errorMessage 
+          ? `Dia is offline (${errorMessage.slice(0, 60)}${errorMessage.length > 60 ? '...' : ''}) — I made a quick recipe anyway.`
+          : "Dia is offline right now — I made a quick recipe anyway.";
+        setLastError(msg);
+        console.log("[recipes] createRecipeWithAgent: using offline fallback", { errorMessage });
       }
 
       const id = `ai_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -625,7 +637,7 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
         return next;
       });
 
-      console.log("[recipes] createRecipeWithAgent:done", { id, title: full.title });
+      console.log("[recipes] createRecipeWithAgent:done", { id, title: full.title, isOffline });
       return full;
     },
     [persist],
@@ -640,32 +652,34 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
       console.log("[recipes] ensureFullRecipe:start", { id, title: existing.title });
       setLastError(null);
 
-      try {
-        const generated = await agentGenerateRecipe({
-          goal: "blood sugar control",
-          preferences: `Generate a full recipe based on this idea: ${existing.title}. Keep category: ${existing.category}.`,
-        });
+      const { recipe: generated, isOffline, errorMessage } = await agentGenerateRecipe({
+        goal: "blood sugar control",
+        preferences: `Generate a full recipe based on this idea: ${existing.title}. Keep category: ${existing.category}.`,
+      });
 
-        const full: CoachRecipe = {
-          ...(generated as CoachRecipe),
-          id,
-          image: existing.image,
-          source: "saved",
-        };
-
-        setSavedRecipes((prev) => {
-          const next = [full, ...prev.filter((r) => r.id !== id)];
-          void persist(next);
-          return next;
-        });
-
-        console.log("[recipes] ensureFullRecipe:done", { id });
-        return full;
-      } catch (e) {
-        console.error("[recipes] ensureFullRecipe:failed", { e });
-        setLastError("Dia had trouble expanding this recipe. Please try again.");
-        return existing;
+      if (isOffline) {
+        const msg = errorMessage
+          ? `Dia had trouble expanding this recipe (${errorMessage.slice(0, 40)}...). Using fallback.`
+          : "Dia had trouble expanding this recipe. Using fallback.";
+        setLastError(msg);
+        console.log("[recipes] ensureFullRecipe: using offline fallback", { errorMessage });
       }
+
+      const full: CoachRecipe = {
+        ...(generated as CoachRecipe),
+        id,
+        image: existing.image,
+        source: "saved",
+      };
+
+      setSavedRecipes((prev) => {
+        const next = [full, ...prev.filter((r) => r.id !== id)];
+        void persist(next);
+        return next;
+      });
+
+      console.log("[recipes] ensureFullRecipe:done", { id, isOffline });
+      return full;
     },
     [getRecipeById, persist],
   );

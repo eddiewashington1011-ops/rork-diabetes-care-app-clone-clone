@@ -443,9 +443,10 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         });
 
         await setWeekPlanWhole({ weekPlan: nextWeek });
-      } catch (e) {
-        console.error("[mealPlan] createPersonalPlanWithCoach:failed", { e });
-        setLastError("Dia couldn’t build a plan right now. Please try again.");
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error("[mealPlan] createPersonalPlanWithCoach:failed", { error: errorMessage });
+        setLastError(`Dia could not build a plan: ${errorMessage.slice(0, 80)}${errorMessage.length > 80 ? "..." : ""}`);
         throw e;
       }
     },

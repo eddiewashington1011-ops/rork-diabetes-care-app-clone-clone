@@ -121,19 +121,25 @@ export default function RecipesScreen() {
   );
 
   const onGenerate = useCallback(async () => {
-    if (isGenerating) return;
+    if (isGenerating) {
+      console.log("[cookbook] onGenerate: already generating, skipping");
+      return;
+    }
     setIsGenerating(true);
     console.log("[cookbook] coach generate pressed", { coachGoal, coachPrefsLen: coachPrefs.length });
 
     try {
       const created = await createRecipeWithAgent({ goal: coachGoal, preferences: coachPrefs });
+      console.log("[cookbook] recipe created successfully", { id: created.id, title: created.title });
       setCoachOpen(false);
       setCoachPrefs("");
       setTimeout(() => {
         openRecipe(created.id);
       }, 50);
-    } catch {
-      Alert.alert("Couldn’t generate recipe", "Please try again in a moment.");
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.error("[cookbook] onGenerate failed", { error: errorMessage });
+      Alert.alert("Could not generate recipe", errorMessage.length > 100 ? errorMessage.slice(0, 100) + "..." : errorMessage);
     } finally {
       setIsGenerating(false);
     }
