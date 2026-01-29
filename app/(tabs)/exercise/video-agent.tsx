@@ -253,16 +253,14 @@ export default function ExerciseVideoAgentScreen() {
     const messageToSend = directMessage ?? input;
     if (!messageToSend.trim() || isLoading) return;
     
-    const exerciseContext = exercise 
-      ? `[Context: Exercise "${exercise.title}" - ${exercise.duration} min, ${exercise.caloriesBurned} cal, ${exercise.intensity} intensity, ${exercise.category}]`
+    const context = exercise 
+      ? `Exercise: "${exercise.title}" (${exercise.duration} min, ${exercise.caloriesBurned} cal, ${exercise.intensity}). `
       : "";
     
-    const systemContext = `You are a creative fitness video content specialist for short-form workout videos (TikTok, Reels, Shorts). Help create engaging diabetes-friendly exercise content. ${exerciseContext}`;
-    
-    console.log("[ExerciseVideoAgent] sending message", { message: messageToSend, hasExercise: Boolean(exercise) });
-    sendMessage({ text: `${systemContext}\n\nUser: ${messageToSend}` });
+    console.log("[ExerciseVideoAgent] sending message", { message: messageToSend, hasExercise: Boolean(exercise), status });
+    sendMessage({ text: `${context}${messageToSend}` });
     setInput("");
-  }, [input, isLoading, exercise, sendMessage]);
+  }, [input, isLoading, exercise, sendMessage, status]);
 
   const quickActions = [
     { label: "Full Video Pack", icon: Video, prompt: "Generate a complete video pack for this exercise" },

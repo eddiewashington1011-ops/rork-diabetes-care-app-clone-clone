@@ -41,7 +41,7 @@ type GeneratedContent = {
 
 export default function VideoAgentScreen() {
   const { recipeId } = useLocalSearchParams<{ recipeId: string }>();
-  const { getRecipeById, generateVideoPack } = useRecipes();
+  const { getRecipeById } = useRecipes();
   const recipe = useMemo(() => getRecipeById(recipeId), [getRecipeById, recipeId]);
 
   const [input, setInput] = useState("");
@@ -180,16 +180,57 @@ export default function VideoAgentScreen() {
         zodSchema: z.object({
           style: z.enum(["viral", "educational", "aesthetic", "quick"]).describe("Overall content style"),
         }),
-        execute: async (toolInput) => {
+        execute: (toolInput) => {
           console.log("[VideoAgent] generateFullVideoPack called", toolInput);
           if (!recipe) return JSON.stringify({ success: false, error: "No recipe found" });
           
-          const pack = await generateVideoPack(recipe.id);
-          if (pack) {
-            setGeneratedContent({ type: "full_pack", data: pack });
-            return JSON.stringify({ success: true, message: "Full video pack generated!" });
-          }
-          return JSON.stringify({ success: false, error: "Failed to generate pack" });
+          const script: VideoScriptScene[] = [
+            { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${recipe.title} with steam rising` },
+            { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with nutrition overlay" },
+            { timecode: "[00:08-00:18]", content: `${toolInput.style === "viral" ? "Rapid cuts of" : "Smooth shots showing"} prep work` },
+            { timecode: "[00:18-00:30]", content: "Main cooking action with satisfying sounds" },
+            { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups" },
+            { timecode: "[00:40-00:50]", content: "Hero shot + nutrition facts overlay" },
+            { timecode: "[00:50-00:60]", content: "CTA with fork bite shot" },
+          ];
+
+          const storyboard: StoryboardShot[] = [
+            { shotNumber: 1, duration: "3s", angle: "overhead", action: "Hero reveal", onScreenText: recipe.title, soundCue: "Music hit" },
+            { shotNumber: 2, duration: "5s", angle: "close-up", action: "Ingredients", onScreenText: `${recipe.carbsPerServing}g carbs`, soundCue: "upbeat" },
+            { shotNumber: 3, duration: "10s", angle: "45-degree", action: "Prep work", onScreenText: "", soundCue: "chop sounds" },
+            { shotNumber: 4, duration: "12s", angle: "eye-level", action: "Cooking", onScreenText: "", soundCue: "sizzle" },
+            { shotNumber: 5, duration: "10s", angle: "overhead", action: "Plating", onScreenText: "", soundCue: "transition" },
+            { shotNumber: 6, duration: "5s", angle: "hero", action: "Final shot", onScreenText: "CTA", soundCue: "Music finale" },
+          ];
+
+          const prompts = [
+            `Cinematic overhead shot of ${recipe.title}, steam rising, professional food photography, 9:16 vertical, 4K`,
+            `Close-up of fresh ingredients on marble counter, soft natural lighting, shallow depth of field`,
+            `Smooth tracking shot of cooking process, warm kitchen lighting, professional food video`,
+          ];
+
+          const captions = [
+            `${recipe.title} - only ${recipe.carbsPerServing}g carbs!`,
+            "Perfect for blood sugar control 🩸✨",
+            `${recipe.calories} calories of pure satisfaction`,
+            "Diabetes-friendly comfort food 💚",
+          ];
+
+          const hashtags = ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#mealprep", "#healthyrecipes"];
+          
+          setGeneratedContent({ 
+            type: "full_pack", 
+            data: { 
+              videoScript: script, 
+              verticalStoryboard: storyboard, 
+              videoGenerationPrompts: prompts,
+              finalHeroShotPrompt: `Professional food photography of ${recipe.title}, perfectly plated, soft lighting, 9:16 vertical`,
+              autoCaptions: captions,
+              hashtags,
+              cta: "Save this and try it tonight! 🔥"
+            } 
+          });
+          return JSON.stringify({ success: true, message: "Full video pack generated!" });
         },
       }),
     },
@@ -207,16 +248,14 @@ export default function VideoAgentScreen() {
     const messageToSend = directMessage ?? input;
     if (!messageToSend.trim() || isLoading) return;
     
-    const recipeContext = recipe 
-      ? `[Context: Recipe "${recipe.title}" - ${recipe.calories} cal, ${recipe.carbsPerServing}g carbs, ${recipe.category}]`
+    const context = recipe 
+      ? `Recipe: "${recipe.title}" (${recipe.calories} cal, ${recipe.carbsPerServing}g carbs). `
       : "";
     
-    const systemContext = `You are a creative video content specialist for short-form cooking videos (TikTok, Reels, Shorts). Help create engaging diabetes-friendly recipe content. ${recipeContext}`;
-    
-    console.log("[VideoAgent] sending message", { message: messageToSend, hasRecipe: Boolean(recipe) });
-    sendMessage({ text: `${systemContext}\n\nUser: ${messageToSend}` });
+    console.log("[VideoAgent] sending message", { message: messageToSend, hasRecipe: Boolean(recipe), status });
+    sendMessage({ text: `${context}${messageToSend}` });
     setInput("");
-  }, [input, isLoading, recipe, sendMessage]);
+  }, [input, isLoading, recipe, sendMessage, status]);
 
   const quickActions = [
     { label: "Full Video Pack", icon: Video, prompt: "Generate a complete video pack for this recipe" },
