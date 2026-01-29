@@ -206,7 +206,7 @@ type CoachDay = z.infer<typeof CoachDaySchema>;
 
 const CoachPlanSchema = z.object({
   days: z.array(CoachDaySchema).min(7).max(7),
-  summary: z.string().min(1).max(320),
+  summary: z.string().min(1).max(800),
 });
 
 
