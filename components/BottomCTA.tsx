@@ -27,7 +27,13 @@ function BottomCTAInner({ title, subtitle, onPress, disabled, bottomOffset, test
   const resolvedBottomOffset = bottomOffset ?? (Platform.OS === "web" ? 68 : 64);
 
   const content = (
-    <View style={styles.innerRow}>
+    <TouchableOpacity
+      onPress={onPressSafe}
+      activeOpacity={0.85}
+      disabled={disabled}
+      style={styles.innerRow}
+      testID={testID}
+    >
       <View style={styles.textCol}>
         <Text style={styles.title} numberOfLines={1} testID={testID ? `${testID}-title` : undefined}>
           {title}
@@ -39,17 +45,10 @@ function BottomCTAInner({ title, subtitle, onPress, disabled, bottomOffset, test
         ) : null}
       </View>
 
-      <TouchableOpacity
-        onPress={onPressSafe}
-        activeOpacity={0.85}
-        disabled={disabled}
-        style={[styles.button, disabled && styles.buttonDisabled]}
-        testID={testID}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
+      <View style={[styles.button, disabled && styles.buttonDisabled]}>
         <Text style={styles.buttonText}>{title}</Text>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 
   if (Platform.OS === "web") {
