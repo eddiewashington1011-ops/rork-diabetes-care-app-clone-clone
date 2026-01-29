@@ -189,17 +189,19 @@ async function agentPickSwap(input: {
   const system =
     "You are Dia — a friendly diabetes lifestyle coach inside a mobile health app. You help the user swap meals to match their preferences while keeping choices diabetes-friendly: no added sugar, low glycemic load, moderate carbs, higher fiber, heart-healthy (DASH/Mediterranean), reasonable sodium, balanced macros. Sound warm and practical (like a best friend who knows food). Pick ONE option from the provided candidates.";
 
-  const user =
+  const userPrompt =
+    `${system}\n\n` +
     `Task: Swap the user's ${category} to fit their preferences.\n` +
     `Current meal: ${input.currentMealName}\n` +
     `User preferences: ${input.preferencesText || "(none)"}\n` +
     `Candidates (pick exactly one): ${JSON.stringify(candidatesForPrompt)}\n` +
     `Rules: Pick an option with lower carbs when possible, prioritize higher fiber/protein, avoid added sugar, keep it realistic + easy to prep. Return recipeId if you picked a recipe, or snackName if you picked a simple snack name. Provide a short justification.`;
 
+  console.log("[mealPlan] agentPickSwap: calling generateObject");
+
   const res = await generateObject({
     messages: [
-      { role: "assistant", content: system },
-      { role: "user", content: user },
+      { role: "user", content: userPrompt },
     ],
     schema: SwapSchema,
   });
@@ -378,7 +380,8 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
       const system =
         "You are Dia — a friendly diabetes lifestyle coach inside a mobile health app. Create a diabetes-friendly weekly meal plan (low glycemic load, no added sugar, moderate carbs, higher fiber, heart-healthy, reasonable sodium, balanced macros). Pick recipes ONLY from the provided pools. For snack slots, you may choose a snack recipeId OR a simple snackName from the provided snackNames. Keep prep simple and realistic, and match the user's goal + cooking constraints. Be encouraging, conversational, and customer-friendly.";
 
-      const user =
+      const userPrompt =
+        `${system}\n\n` +
         `User goal: ${input.goal}\n` +
         `Cooking skill: ${input.cookingSkill}\n` +
         `Max cooking time per meal: ${safeInt(input.cookingTimeMinutes, 20)} minutes\n` +
@@ -396,10 +399,10 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
 
       try {
         setLastError(null);
+        console.log("[mealPlan] createPersonalPlanWithCoach: calling generateObject");
         const res = await generateObject({
           messages: [
-            { role: "assistant", content: system },
-            { role: "user", content: user },
+            { role: "user", content: userPrompt },
           ],
           schema: CoachPlanSchema,
         });
