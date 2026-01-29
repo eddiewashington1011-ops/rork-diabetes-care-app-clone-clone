@@ -89,8 +89,22 @@ export default function HomeScreen() {
 
   const lowerTips = sugarTips.filter((t) => t.type === "lower").slice(0, 2);
   const raiseTips = sugarTips.filter((t) => t.type === "raise").slice(0, 2);
-  const todayRecipe = recipes[0];
-  const todayExercise = exercises[0];
+
+  const todayRecipe = useMemo(() => {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - startOfYear.getTime();
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return recipes[dayOfYear % recipes.length];
+  }, []);
+
+  const todayExercise = useMemo(() => {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - startOfYear.getTime();
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return exercises[dayOfYear % exercises.length];
+  }, []);
 
   const latest = getLatestGlucoseEntry();
   const today = getTodayCheckins();
