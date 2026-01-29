@@ -253,12 +253,14 @@ export default function ExerciseVideoAgentScreen() {
     const messageToSend = directMessage ?? input;
     if (!messageToSend.trim() || isLoading) return;
     
-    const context = exercise 
+    const exerciseContext = exercise 
       ? `Exercise: "${exercise.title}" (${exercise.duration} min, ${exercise.caloriesBurned} cal, ${exercise.intensity}). `
       : "";
     
+    const systemContext = `[System: You are a workout video content creator. Use the appropriate tool based on the request: generateFullVideoPack for complete packs, generateVideoScript for scripts, generateStoryboard for shot lists, generateAIVideoPrompts for AI prompts, generateCaptionsAndHashtags for social media content. Always call a tool to generate content.] `;
+    
     console.log("[ExerciseVideoAgent] sending message", { message: messageToSend, hasExercise: Boolean(exercise), status });
-    sendMessage({ text: `${context}${messageToSend}` });
+    sendMessage({ text: `${systemContext}${exerciseContext}${messageToSend}` });
     setInput("");
   }, [input, isLoading, exercise, sendMessage, status]);
 

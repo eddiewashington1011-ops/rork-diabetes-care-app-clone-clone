@@ -248,12 +248,14 @@ export default function VideoAgentScreen() {
     const messageToSend = directMessage ?? input;
     if (!messageToSend.trim() || isLoading) return;
     
-    const context = recipe 
+    const recipeContext = recipe 
       ? `Recipe: "${recipe.title}" (${recipe.calories} cal, ${recipe.carbsPerServing}g carbs). `
       : "";
     
+    const systemContext = `[System: You are a food video content creator. Use the appropriate tool based on the request: generateFullVideoPack for complete packs, generateVideoScript for scripts, generateStoryboard for shot lists, generateAIVideoPrompts for AI prompts, generateCaptionsAndHashtags for social media content. Always call a tool to generate content.] `;
+    
     console.log("[VideoAgent] sending message", { message: messageToSend, hasRecipe: Boolean(recipe), status });
-    sendMessage({ text: `${context}${messageToSend}` });
+    sendMessage({ text: `${systemContext}${recipeContext}${messageToSend}` });
     setInput("");
   }, [input, isLoading, recipe, sendMessage, status]);
 
