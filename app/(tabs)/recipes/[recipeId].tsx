@@ -1,26 +1,68 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { Clock, Users, Flame, Wheat } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Clock, Users, Flame, Wheat, Sparkles, Trash2 } from "lucide-react-native";
 import Colors from "@/constants/colors";
-import { recipes } from "@/mocks/recipes";
+import { useRecipes } from "@/providers/recipes";
 
 export default function RecipeDetailScreen() {
+  const router = useRouter();
   const { recipeId } = useLocalSearchParams<{ recipeId: string }>();
+  const { getRecipeById, ensureFullRecipe, deleteSavedRecipe } = useRecipes();
 
-  const recipe = useMemo(() => recipes.find((r) => r.id === recipeId), [recipeId]);
+  const [isExpanding, setIsExpanding] = useState<boolean>(false);
 
-  console.log("[RecipeDetail] open", { recipeId, found: Boolean(recipe) });
+  const recipe = useMemo(() => getRecipeById(recipeId), [getRecipeById, recipeId]);
+
+  console.log("[RecipeDetail] open", { recipeId, found: Boolean(recipe), source: recipe?.source });
+
+  const onGenerateFull = useCallback(async () => {
+    if (!recipe || recipe.source !== "virtual") return;
+    if (isExpanding) return;
+
+    console.log("[RecipeDetail] generate full pressed", { recipeId: recipe.id });
+    setIsExpanding(true);
+    try {
+      const next = await ensureFullRecipe(recipe.id);
+      if (next?.source === "saved") {
+        Alert.alert("Ready to cook", "Full ingredients + steps generated.");
+      }
+    } catch (e) {
+      Alert.alert("Couldn’t generate", "Please try again in a moment.");
+    } finally {
+      setIsExpanding(false);
+    }
+  }, [ensureFullRecipe, isExpanding, recipe]);
+
+  const onDelete = useCallback(() => {
+    if (!recipe || recipe.source !== "saved" || !recipe.id.startsWith("ai_")) return;
+
+    Alert.alert("Delete recipe?", "This will remove it from your saved cookbook.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          console.log("[RecipeDetail] delete pressed", { id: recipe.id });
+          void deleteSavedRecipe(recipe.id);
+          router.back();
+        },
+      },
+    ]);
+  }, [deleteSavedRecipe, recipe, router]);
 
   if (!recipe) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="recipe-not-found">
         <Text style={styles.errorText}>Recipe not found</Text>
       </View>
     );
@@ -70,6 +112,37 @@ export default function RecipeDetailScreen() {
           </View>
         )}
 
+        <View style={styles.actionRow}>
+          {recipe.source === "virtual" ? (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonPrimary]}
+              onPress={onGenerateFull}
+              activeOpacity={0.9}
+              disabled={isExpanding}
+              testID="recipe-generate-full"
+            >
+              {isExpanding ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Sparkles size={16} color="#fff" />
+              )}
+              <Text style={styles.actionButtonText}>{isExpanding ? "Generating…" : "Generate full recipe"}</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {recipe.source === "saved" && recipe.id.startsWith("ai_") ? (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonGhost]}
+              onPress={onDelete}
+              activeOpacity={0.9}
+              testID="recipe-delete"
+            >
+              <Trash2 size={16} color={Colors.light.danger} />
+              <Text style={styles.actionButtonGhostText}>Delete</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
             <View style={[styles.statIcon, { backgroundColor: Colors.light.tintLight }]}>
@@ -98,6 +171,41 @@ export default function RecipeDetailScreen() {
             </View>
             <Text style={styles.statValue}>{recipe.carbsPerServing}g</Text>
             <Text style={styles.statLabel}>Carbs</Text>
+          </View>
+        </View>
+
+        <View style={styles.nutritionCard} testID="recipe-nutrition-card">
+          <Text style={styles.nutritionTitle}>Nutrition (per serving)</Text>
+          <View style={styles.nutritionGrid}>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.calories}</Text>
+              <Text style={styles.nutritionLabel}>Calories</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.carbsPerServing}g</Text>
+              <Text style={styles.nutritionLabel}>Carbs</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.fiberG ?? "—"}</Text>
+              <Text style={styles.nutritionLabel}>Fiber (g)</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.sugarG ?? "—"}</Text>
+              <Text style={styles.nutritionLabel}>Sugar (g)</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.proteinG ?? "—"}</Text>
+              <Text style={styles.nutritionLabel}>Protein (g)</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.fatG ?? "—"}</Text>
+              <Text style={styles.nutritionLabel}>Fat (g)</Text>
+            </View>
+          </View>
+
+          <View style={styles.giRow}>
+            <Text style={styles.giLabel}>Estimated Glycemic Load</Text>
+            <Text style={styles.giValue}>{recipe.glycemicLoad ?? "—"}</Text>
           </View>
         </View>
 
@@ -171,12 +279,12 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "600" as const,
     color: Colors.light.tint,
   },
   title: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "700" as const,
     color: Colors.light.text,
     marginBottom: 8,
   },
@@ -203,7 +311,7 @@ const styles = StyleSheet.create({
   },
   pairingLabel: {
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "800" as const,
     letterSpacing: 0.3,
     color: Colors.light.textSecondary,
     textTransform: "uppercase",
@@ -212,16 +320,50 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "700" as const,
     color: Colors.light.text,
     lineHeight: 18,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  actionButtonPrimary: {
+    flex: 1,
+    backgroundColor: Colors.light.sapphire,
+    borderColor: Colors.light.sapphire,
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900" as const,
+  },
+  actionButtonGhost: {
+    backgroundColor: Colors.light.background,
+    borderColor: Colors.light.border,
+  },
+  actionButtonGhostText: {
+    color: Colors.light.danger,
+    fontSize: 14,
+    fontWeight: "900" as const,
   },
   statsGrid: {
     flexDirection: "row",
     backgroundColor: Colors.light.surface,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -242,7 +384,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "700" as const,
     color: Colors.light.text,
     marginBottom: 2,
   },
@@ -250,12 +392,75 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.light.textSecondary,
   },
+  nutritionCard: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    marginBottom: 22,
+  },
+  nutritionTitle: {
+    fontSize: 14,
+    fontWeight: "900" as const,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    color: Colors.light.textSecondary,
+    marginBottom: 12,
+  },
+  nutritionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  nutritionItem: {
+    width: "30%",
+    minWidth: 96,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  nutritionValue: {
+    fontSize: 16,
+    fontWeight: "900" as const,
+    color: Colors.light.text,
+  },
+  nutritionLabel: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "800" as const,
+    color: Colors.light.textSecondary,
+  },
+  giRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+  },
+  giLabel: {
+    fontSize: 12,
+    fontWeight: "900" as const,
+    color: Colors.light.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  giValue: {
+    fontSize: 16,
+    fontWeight: "900" as const,
+    color: Colors.light.sapphire,
+  },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "700" as const,
     color: Colors.light.text,
     marginBottom: 16,
   },
@@ -306,7 +511,7 @@ const styles = StyleSheet.create({
   },
   stepNumberText: {
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "700" as const,
     color: "#fff",
   },
   instructionText: {

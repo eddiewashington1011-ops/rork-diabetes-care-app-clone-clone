@@ -7,14 +7,21 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
+  Modal,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Search, Clock, Flame, X, Globe, Leaf, CupSoda } from "lucide-react-native";
+import { Search, Clock, Flame, X, Globe, Leaf, CupSoda, Sparkles } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { BottomCTA } from "@/components/BottomCTA";
-import { recipes, recipeCategories, Recipe } from "@/mocks/recipes";
+import { recipeCategories } from "@/mocks/recipes";
+import { useRecipes, CoachRecipe } from "@/providers/recipes";
 
-function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }) {
+function RecipeCard({ recipe, onPress }: { recipe: CoachRecipe; onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.recipeCard} onPress={onPress} activeOpacity={0.8}>
       <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
@@ -46,48 +53,64 @@ function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }
 
 export default function RecipesScreen() {
   const router = useRouter();
+  const { getPage, totalVirtualCount, createRecipeWithAgent, isHydrating, lastError } = useRecipes();
+
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const [coachOpen, setCoachOpen] = useState<boolean>(false);
+  const [coachGoal, setCoachGoal] = useState<string>("Blood sugar control");
+  const [coachPrefs, setCoachPrefs] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   const onPlan = useCallback(() => {
     console.log("[cookbook] bottom cta pressed");
     router.push("/(tabs)/meal-plan");
   }, [router]);
 
-  const filteredRecipes = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-
-    return recipes.filter((recipe) => {
-      const matchesCategory =
-        activeCategory === "all" ||
-        recipe.category === activeCategory ||
-        (activeCategory === "world-best" && recipe.tags.includes("world-best")) ||
-        (activeCategory === "teas" && recipe.category === "teas");
-
-      const matchesSearch =
-        q.length === 0 ||
-        recipe.title.toLowerCase().includes(q) ||
-        recipe.description.toLowerCase().includes(q) ||
-        (recipe.origin ?? "").toLowerCase().includes(q) ||
-        (recipe.teaPairings ?? []).some((t) => t.toLowerCase().includes(q));
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategory, searchQuery]);
+  const topRecipes = useMemo(() => {
+    return getPage({ categoryId: activeCategory, query: searchQuery, offset: 0, limit: 120 });
+  }, [activeCategory, getPage, searchQuery]);
 
   const worldBestPick = useMemo(() => {
-    const picks = recipes
-      .filter((r) => r.tags.includes("world-best"))
-      .sort((a, b) => a.carbsPerServing - b.carbsPerServing);
+    const picks = getPage({ categoryId: "world-best", query: "", offset: 0, limit: 24 }).sort(
+      (a, b) => a.carbsPerServing - b.carbsPerServing,
+    );
     return picks[0] ?? null;
-  }, []);
+  }, [getPage]);
 
   const teasPick = useMemo(() => {
-    const picks = recipes
-      .filter((r) => r.category === "teas")
-      .sort((a, b) => a.carbsPerServing - b.carbsPerServing);
+    const picks = getPage({ categoryId: "teas", query: "", offset: 0, limit: 24 }).sort(
+      (a, b) => a.carbsPerServing - b.carbsPerServing,
+    );
     return picks[0] ?? null;
-  }, []);
+  }, [getPage]);
+
+  const openRecipe = useCallback(
+    (id: string) => {
+      router.push(`/(tabs)/recipes/${id}`);
+    },
+    [router],
+  );
+
+  const onGenerate = useCallback(async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    console.log("[cookbook] coach generate pressed", { coachGoal, coachPrefsLen: coachPrefs.length });
+
+    try {
+      const created = await createRecipeWithAgent({ goal: coachGoal, preferences: coachPrefs });
+      setCoachOpen(false);
+      setCoachPrefs("");
+      setTimeout(() => {
+        openRecipe(created.id);
+      }, 50);
+    } catch (e) {
+      Alert.alert("Couldn’t generate recipe", "Please try again in a moment.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [coachGoal, coachPrefs, createRecipeWithAgent, isGenerating, openRecipe]);
 
   return (
     <View style={styles.container} testID="cookbook-screen">
@@ -95,7 +118,7 @@ export default function RecipesScreen() {
         <View style={styles.heroTopRow}>
           <View style={styles.heroTitleWrap}>
             <Text style={styles.heroEyebrow}>Cookbook</Text>
-            <Text style={styles.heroTitle}>World-class recipes for steady glucose</Text>
+            <Text style={styles.heroTitle}>Cookbook: 8,000+ diabetes-friendly recipes</Text>
           </View>
           <View style={styles.heroIconBadge}>
             <Globe size={18} color={Colors.light.sapphire} />
@@ -105,11 +128,38 @@ export default function RecipesScreen() {
         <View style={styles.heroChipsRow}>
           <View style={styles.heroChip}>
             <Leaf size={14} color={Colors.light.success} />
-            <Text style={styles.heroChipText}>Low added sugar</Text>
+            <Text style={styles.heroChipText}>No added sugar</Text>
           </View>
           <View style={styles.heroChip}>
             <CupSoda size={14} color={Colors.light.gold} />
-            <Text style={styles.heroChipText}>Tea pairings</Text>
+            <Text style={styles.heroChipText}>Low glycemic load</Text>
+          </View>
+        </View>
+
+        <View style={styles.heroCoachRow}>
+          <TouchableOpacity
+            style={styles.coachButton}
+            onPress={() => setCoachOpen(true)}
+            activeOpacity={0.9}
+            testID="cookbook-open-coach"
+          >
+            <View style={styles.coachIcon}>
+              <Sparkles size={16} color={Colors.light.sapphire} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.coachTitle}>Ask DiaCare Coach</Text>
+              <Text style={styles.coachSubtitle} numberOfLines={1}>
+                Generate a meal for your goal, taste, and carbs
+              </Text>
+            </View>
+            <View style={styles.coachPill}>
+              <Text style={styles.coachPillText}>AI</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.heroCountPill} testID="cookbook-total-count">
+            <Text style={styles.heroCountText}>{totalVirtualCount.toLocaleString()}+</Text>
+            <Text style={styles.heroCountSub}>recipes</Text>
           </View>
         </View>
 
@@ -229,22 +279,95 @@ export default function RecipesScreen() {
         contentContainerStyle={styles.recipesContainer}
         testID="cookbook-list"
       >
-        {filteredRecipes.length === 0 ? (
+        {isHydrating ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="small" color={Colors.light.tint} />
+            <Text style={styles.loadingText}>Loading cookbook…</Text>
+          </View>
+        ) : topRecipes.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🍽️</Text>
             <Text style={styles.emptyText}>No recipes found</Text>
             <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
+            {lastError ? <Text style={styles.errorHint}>{lastError}</Text> : null}
           </View>
         ) : (
-          filteredRecipes.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              onPress={() => router.push(`/(tabs)/recipes/${recipe.id}`)}
-            />
+          topRecipes.map((recipe) => (
+            <RecipeCard key={recipe.id} recipe={recipe} onPress={() => openRecipe(recipe.id)} />
           ))
         )}
       </ScrollView>
+
+      <Modal
+        visible={coachOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCoachOpen(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setCoachOpen(false)} testID="cookbook-coach-overlay">
+          <Pressable style={styles.modalCard} onPress={() => {}} testID="cookbook-coach-modal">
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>DiaCare Coach</Text>
+                <TouchableOpacity
+                  onPress={() => setCoachOpen(false)}
+                  style={styles.modalClose}
+                  testID="cookbook-coach-close"
+                >
+                  <X size={18} color={Colors.light.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalLabel}>Goal</Text>
+              <View style={styles.goalRow}>
+                {["Blood sugar control", "Weight loss", "Heart health", "High protein"].map((g) => {
+                  const active = coachGoal === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      onPress={() => setCoachGoal(g)}
+                      style={[styles.goalChip, active && styles.goalChipActive]}
+                      testID={`cookbook-coach-goal-${g.replace(/\s+/g, "-").toLowerCase()}`}
+                    >
+                      <Text style={[styles.goalChipText, active && styles.goalChipTextActive]}>{g}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={[styles.modalLabel, { marginTop: 12 }]}>Preferences</Text>
+              <TextInput
+                value={coachPrefs}
+                onChangeText={setCoachPrefs}
+                placeholder="e.g., 30g carbs max, vegetarian, spicy, 15 min prep, uses chicken…"
+                placeholderTextColor={Colors.light.textSecondary}
+                multiline
+                style={styles.modalInput}
+                testID="cookbook-coach-input"
+              />
+
+              <TouchableOpacity
+                onPress={onGenerate}
+                activeOpacity={0.9}
+                style={[styles.modalButton, isGenerating && { opacity: 0.7 }]}
+                disabled={isGenerating}
+                testID="cookbook-coach-generate"
+              >
+                {isGenerating ? (
+                  <View style={styles.modalButtonRow}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.modalButtonText}>Generating…</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.modalButtonText}>Generate recipe</Text>
+                )}
+              </TouchableOpacity>
+
+              {lastError ? <Text style={styles.modalErrorText}>{lastError}</Text> : null}
+            </KeyboardAvoidingView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <BottomCTA
         title="Plan your week"
@@ -303,6 +426,78 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 12,
+  },
+  heroCoachRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  coachButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: Colors.light.sapphireLight,
+    borderWidth: 1,
+    borderColor: "rgba(11, 58, 91, 0.14)",
+  },
+  coachIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(11, 58, 91, 0.12)",
+  },
+  coachTitle: {
+    fontSize: 14,
+    fontWeight: "900" as const,
+    color: Colors.light.sapphire,
+  },
+  coachSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.light.textSecondary,
+  },
+  coachPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: Colors.light.sapphire,
+  },
+  coachPillText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "900" as const,
+    letterSpacing: 0.3,
+  },
+  heroCountPill: {
+    width: 86,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroCountText: {
+    fontSize: 16,
+    fontWeight: "900" as const,
+    color: Colors.light.text,
+  },
+  heroCountSub: {
+    marginTop: 1,
+    fontSize: 11,
+    fontWeight: "800" as const,
+    color: Colors.light.textSecondary,
   },
   heroChip: {
     flexDirection: "row",
@@ -525,5 +720,127 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: Colors.light.textSecondary,
+  },
+  errorHint: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.light.danger,
+    textAlign: "center",
+  },
+  loadingState: {
+    paddingVertical: 60,
+    alignItems: "center",
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: Colors.light.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    backgroundColor: Colors.light.surface,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 18,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "900" as const,
+    color: Colors.light.text,
+  },
+  modalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: "900" as const,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    color: Colors.light.textSecondary,
+    marginBottom: 8,
+  },
+  goalRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  goalChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  goalChipActive: {
+    backgroundColor: Colors.light.sapphire,
+    borderColor: Colors.light.sapphire,
+  },
+  goalChipText: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    color: Colors.light.textSecondary,
+  },
+  goalChipTextActive: {
+    color: "#fff",
+  },
+  modalInput: {
+    minHeight: 88,
+    maxHeight: 170,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    fontSize: 14,
+    color: Colors.light.text,
+  },
+  modalButton: {
+    marginTop: 14,
+    backgroundColor: Colors.light.tint,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900" as const,
+  },
+  modalErrorText: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.light.danger,
   },
 });
