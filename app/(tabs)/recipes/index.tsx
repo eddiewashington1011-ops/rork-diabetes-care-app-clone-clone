@@ -346,8 +346,13 @@ export default function RecipesScreen() {
         animationType="slide"
         onRequestClose={() => setCoachOpen(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setCoachOpen(false)} testID="cookbook-coach-overlay">
-          <Pressable style={styles.modalCard} onPress={() => {}} testID="cookbook-coach-modal">
+        <View style={styles.modalOverlay} testID="cookbook-coach-overlay">
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setCoachOpen(false)}
+            testID="cookbook-coach-overlay-dismiss"
+          />
+          <View style={styles.modalCard} testID="cookbook-coach-modal">
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Dia</Text>
@@ -407,8 +412,8 @@ export default function RecipesScreen() {
 
               {lastError ? <Text style={styles.modalErrorText}>{lastError}</Text> : null}
             </KeyboardAvoidingView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <BottomCTA
