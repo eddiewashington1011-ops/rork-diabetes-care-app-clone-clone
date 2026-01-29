@@ -1,3 +1,22 @@
+export interface VideoStoryboardShot {
+  shotNumber: number;
+  duration: string;
+  angle: string;
+  action: string;
+  onScreenText: string;
+  soundCue: string;
+}
+
+export interface ShortVideoPack {
+  videoScript: { timecode: string; content: string }[];
+  verticalStoryboard: VideoStoryboardShot[];
+  videoGenerationPrompts: string[];
+  finalHeroShotPrompt: string;
+  autoCaptions: string[];
+  cta: string;
+  hashtags: string[];
+}
+
 export interface Recipe {
   id: string;
   title: string;
@@ -15,6 +34,7 @@ export interface Recipe {
   origin?: string;
   teaPairings?: string[];
   glycemicNotes?: string[];
+  shortVideoPack?: ShortVideoPack;
 }
 
 export const recipeCategories = [

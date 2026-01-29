@@ -4,7 +4,7 @@ import createContextHook from "@nkzw/create-context-hook";
 import { generateObject } from "@rork-ai/toolkit-sdk";
 import * as z from "zod";
 
-import { recipes as baseRecipes, Recipe } from "@/mocks/recipes";
+import { recipes as baseRecipes, Recipe, ShortVideoPack } from "@/mocks/recipes";
 
 export type RecipeSource = "base" | "saved" | "virtual";
 
@@ -16,6 +16,7 @@ export type CoachRecipe = Recipe & {
   fatG?: number;
   glycemicLoad?: number;
   skillLevel?: "easy" | "medium" | "advanced";
+  shortVideoPack?: ShortVideoPack;
 };
 
 type GetRecipesInput = {
@@ -37,6 +38,7 @@ type RecipesState = {
   createRecipeWithAgent: (input: { goal: string; preferences: string }) => Promise<CoachRecipe>;
   ensureFullRecipe: (id: string) => Promise<CoachRecipe | null>;
   deleteSavedRecipe: (id: string) => Promise<void>;
+  generateVideoPack: (id: string) => Promise<ShortVideoPack | null>;
 };
 
 const STORAGE_KEY = "diacare:saved_recipes:v1" as const;
@@ -262,6 +264,70 @@ const AgentRecipeSchema = z
     glycemicNotes: z.array(z.string().min(4).max(180)).min(2).max(6),
   })
   .strict();
+
+const VideoPackSchema = z.object({
+  videoScript: z.array(z.object({
+    timecode: z.string().describe("Time range like [00:00-00:03]"),
+    content: z.string().describe("What happens or is shown during this time"),
+  })).min(6).max(12),
+  verticalStoryboard: z.array(z.object({
+    shotNumber: z.number().int().min(1).max(12),
+    duration: z.string().describe("Duration like 2-3s"),
+    angle: z.string().describe("Camera angle: overhead, close-up, slow pan, hand-held"),
+    action: z.string().describe("What is being shown"),
+    onScreenText: z.string().describe("Text overlay for the shot"),
+    soundCue: z.string().describe("Sound: sizzle, chop, pour, music hit, etc."),
+  })).min(8).max(12),
+  videoGenerationPrompts: z.array(z.string().min(50).max(400)).min(8).max(12),
+  finalHeroShotPrompt: z.string().min(80).max(500),
+  autoCaptions: z.array(z.string().min(10).max(60)).min(5).max(8),
+  cta: z.string().min(10).max(60),
+  hashtags: z.array(z.string().min(3).max(30)).min(5).max(10),
+});
+
+function buildVideoPackPrompt(): string {
+  return (
+    "You are an expert short-form video content creator specializing in diabetes-friendly cooking content for TikTok, Instagram Reels, and YouTube Shorts. " +
+    "Create engaging 30-60 second vertical video scripts (9:16 aspect ratio) that are fast-paced, visually appetizing, and educational. " +
+    "Rules: Front-load visual appeal in first 3 seconds. Never show raw sugar, soda, candy, white bread. Always display net carbs, protein, fiber. " +
+    "Use food porn cinematography. Assume viewer attention span = 1.5 seconds. Make diabetes food look BETTER than restaurant food. " +
+    "Video prompts must be suitable for AI video generators like Runway, Pika, Sora, Luma."
+  );
+}
+
+async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<ShortVideoPack> {
+  const system = buildVideoPackPrompt();
+  const userPrompt =
+    `${system}\n\n` +
+    `Recipe: ${recipe.title}\n` +
+    `Description: ${recipe.description}\n` +
+    `Category: ${recipe.category}\n` +
+    `Nutrition: ${recipe.calories} cal, ${recipe.carbsPerServing}g carbs, ${recipe.proteinG ?? 0}g protein, ${recipe.fiberG ?? 0}g fiber\n` +
+    `Ingredients: ${recipe.ingredients.slice(0, 8).join(", ")}\n` +
+    `Instructions: ${recipe.instructions.slice(0, 6).join(". ")}\n\n` +
+    "Generate a complete SHORT VIDEO PACK for this diabetes-friendly recipe. " +
+    "Include: videoScript (time-coded 30-60s), verticalStoryboard (8-12 shots), videoGenerationPrompts (one per shot for AI video tools), " +
+    "finalHeroShotPrompt (cinematic food shot), autoCaptions (5-8 educational captions), cta, and hashtags.";
+
+  console.log("[recipes] agentGenerateVideoPack: calling generateObject", { title: recipe.title });
+
+  const res = await generateObject({
+    messages: [{ role: "user", content: userPrompt }],
+    schema: VideoPackSchema,
+  });
+
+  console.log("[recipes] agentGenerateVideoPack: got response", { shots: res.verticalStoryboard.length });
+
+  return {
+    videoScript: res.videoScript,
+    verticalStoryboard: res.verticalStoryboard,
+    videoGenerationPrompts: res.videoGenerationPrompts,
+    finalHeroShotPrompt: res.finalHeroShotPrompt,
+    autoCaptions: res.autoCaptions,
+    cta: res.cta,
+    hashtags: res.hashtags,
+  };
+}
 
 function buildAgentSystemPrompt(): string {
   return (
@@ -604,6 +670,49 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
     [getRecipeById, persist],
   );
 
+  const generateVideoPack = useCallback(
+    async (id: string): Promise<ShortVideoPack | null> => {
+      const recipe = getRecipeById(id);
+      if (!recipe) {
+        console.error("[recipes] generateVideoPack: recipe not found", { id });
+        return null;
+      }
+
+      if (recipe.shortVideoPack) {
+        console.log("[recipes] generateVideoPack: already has video pack", { id });
+        return recipe.shortVideoPack;
+      }
+
+      console.log("[recipes] generateVideoPack:start", { id, title: recipe.title });
+      setLastError(null);
+
+      try {
+        const videoPack = await agentGenerateVideoPack(recipe);
+
+        const updated: CoachRecipe = {
+          ...recipe,
+          shortVideoPack: videoPack,
+          source: "saved",
+        };
+
+        setSavedRecipes((prev) => {
+          const next = [updated, ...prev.filter((r) => r.id !== id)];
+          void persist(next);
+          return next;
+        });
+
+        console.log("[recipes] generateVideoPack:done", { id });
+        return videoPack;
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error("[recipes] generateVideoPack:failed", { error: errorMessage });
+        setLastError("Dia couldn't generate the video pack. She may be offline.");
+        return null;
+      }
+    },
+    [getRecipeById, persist],
+  );
+
   const value = useMemo<RecipesState>(
     () => ({
       totalVirtualCount: TOTAL_VIRTUAL,
@@ -615,8 +724,9 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
       createRecipeWithAgent,
       ensureFullRecipe,
       deleteSavedRecipe,
+      generateVideoPack,
     }),
-    [createRecipeWithAgent, deleteSavedRecipe, ensureFullRecipe, getPage, getRecipeById, isHydrating, lastError, savedRecipes],
+    [createRecipeWithAgent, deleteSavedRecipe, ensureFullRecipe, generateVideoPack, getPage, getRecipeById, isHydrating, lastError, savedRecipes],
   );
 
   return value;

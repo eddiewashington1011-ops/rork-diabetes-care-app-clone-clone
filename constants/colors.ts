@@ -22,5 +22,7 @@ export default {
     slateLight: "#E2E8F0",
     gold: "#B45309",
     goldLight: "#FFFBEB",
+    coral: "#FF6B6B",
+    coralLight: "#FFE8E8",
   },
 };

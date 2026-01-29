@@ -11,16 +11,20 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { BottomCTA } from "@/components/BottomCTA";
-import { Clock, Users, Flame, Wheat, Sparkles, Trash2 } from "lucide-react-native";
+import { Clock, Users, Flame, Wheat, Sparkles, Trash2, Video, Camera, Hash, MessageSquare, Play, Copy, Check } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useRecipes } from "@/providers/recipes";
+import * as Clipboard from "expo-clipboard";
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
   const { recipeId } = useLocalSearchParams<{ recipeId: string }>();
-  const { getRecipeById, ensureFullRecipe, deleteSavedRecipe } = useRecipes();
+  const { getRecipeById, ensureFullRecipe, deleteSavedRecipe, generateVideoPack } = useRecipes();
 
   const [isExpanding, setIsExpanding] = useState<boolean>(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState<boolean>(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const recipe = useMemo(() => getRecipeById(recipeId), [getRecipeById, recipeId]);
 
@@ -65,6 +69,39 @@ export default function RecipeDetailScreen() {
     console.log("[RecipeDetail] ask dia pressed", { fromRecipeId: recipe?.id });
     router.push({ pathname: "/(tabs)/recipes", params: { coach: "1" } } as never);
   }, [recipe?.id, router]);
+
+  const onGenerateVideoPack = useCallback(async () => {
+    if (!recipe || isGeneratingVideo) return;
+    if (recipe.source === "virtual") {
+      Alert.alert("Generate recipe first", "Please generate the full recipe before creating a video pack.");
+      return;
+    }
+
+    console.log("[RecipeDetail] generate video pack pressed", { recipeId: recipe.id });
+    setIsGeneratingVideo(true);
+    try {
+      const pack = await generateVideoPack(recipe.id);
+      if (pack) {
+        Alert.alert("Video Pack Ready!", "Your TikTok/Reels content has been generated.");
+      } else {
+        Alert.alert("Generation failed", "Dia may be offline. Please try again.");
+      }
+    } catch {
+      Alert.alert("Couldn't generate", "Please try again in a moment.");
+    } finally {
+      setIsGeneratingVideo(false);
+    }
+  }, [generateVideoPack, isGeneratingVideo, recipe]);
+
+  const copyToClipboard = useCallback(async (text: string, index: number) => {
+    await Clipboard.setStringAsync(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  }, []);
+
+  const toggleSection = useCallback((section: string) => {
+    setExpandedSection((prev) => (prev === section ? null : section));
+  }, []);
 
   if (!recipe) {
     return (
@@ -248,6 +285,205 @@ export default function RecipeDetailScreen() {
               <Text style={styles.instructionText}>{instruction}</Text>
             </View>
           ))}
+        </View>
+
+        {/* Video Pack Section */}
+        <View style={styles.videoPackSection} testID="video-pack-section">
+          <View style={styles.videoPackHeader}>
+            <View style={styles.videoPackTitleRow}>
+              <Video size={20} color={Colors.light.coral} />
+              <Text style={styles.videoPackTitle}>Short Video Pack</Text>
+            </View>
+            <Text style={styles.videoPackSubtitle}>TikTok • Reels • Shorts ready</Text>
+          </View>
+
+          {!recipe.shortVideoPack ? (
+            <TouchableOpacity
+              style={styles.generateVideoButton}
+              onPress={onGenerateVideoPack}
+              activeOpacity={0.9}
+              disabled={isGeneratingVideo || recipe.source === "virtual"}
+              testID="generate-video-pack"
+            >
+              {isGeneratingVideo ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Video size={18} color="#fff" />
+              )}
+              <Text style={styles.generateVideoButtonText}>
+                {isGeneratingVideo ? "Generating video pack..." : "Generate Video Content"}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.videoPackContent}>
+              {/* Video Script */}
+              <TouchableOpacity
+                style={styles.videoPackCard}
+                onPress={() => toggleSection("script")}
+                activeOpacity={0.8}
+              >
+                <View style={styles.videoPackCardHeader}>
+                  <View style={styles.videoPackCardIcon}>
+                    <Play size={16} color={Colors.light.coral} />
+                  </View>
+                  <Text style={styles.videoPackCardTitle}>Video Script</Text>
+                  <Text style={styles.videoPackCardBadge}>{recipe.shortVideoPack.videoScript.length} scenes</Text>
+                </View>
+                {expandedSection === "script" && (
+                  <View style={styles.videoPackCardBody}>
+                    {recipe.shortVideoPack.videoScript.map((scene, idx) => (
+                      <View key={idx} style={styles.scriptItem}>
+                        <Text style={styles.scriptTimecode}>{scene.timecode}</Text>
+                        <Text style={styles.scriptContent}>{scene.content}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Storyboard */}
+              <TouchableOpacity
+                style={styles.videoPackCard}
+                onPress={() => toggleSection("storyboard")}
+                activeOpacity={0.8}
+              >
+                <View style={styles.videoPackCardHeader}>
+                  <View style={styles.videoPackCardIcon}>
+                    <Camera size={16} color={Colors.light.sapphire} />
+                  </View>
+                  <Text style={styles.videoPackCardTitle}>Shot List</Text>
+                  <Text style={styles.videoPackCardBadge}>{recipe.shortVideoPack.verticalStoryboard.length} shots</Text>
+                </View>
+                {expandedSection === "storyboard" && (
+                  <View style={styles.videoPackCardBody}>
+                    {recipe.shortVideoPack.verticalStoryboard.map((shot, idx) => (
+                      <View key={idx} style={styles.storyboardShot}>
+                        <View style={styles.shotHeader}>
+                          <Text style={styles.shotNumber}>Shot {shot.shotNumber}</Text>
+                          <Text style={styles.shotDuration}>{shot.duration}</Text>
+                        </View>
+                        <Text style={styles.shotAngle}>{shot.angle}</Text>
+                        <Text style={styles.shotAction}>{shot.action}</Text>
+                        <View style={styles.shotMeta}>
+                          <Text style={styles.shotText}>📝 {shot.onScreenText}</Text>
+                          <Text style={styles.shotSound}>🔊 {shot.soundCue}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Video Prompts */}
+              <TouchableOpacity
+                style={styles.videoPackCard}
+                onPress={() => toggleSection("prompts")}
+                activeOpacity={0.8}
+              >
+                <View style={styles.videoPackCardHeader}>
+                  <View style={styles.videoPackCardIcon}>
+                    <Sparkles size={16} color={Colors.light.gold} />
+                  </View>
+                  <Text style={styles.videoPackCardTitle}>AI Video Prompts</Text>
+                  <Text style={styles.videoPackCardBadge}>Runway/Sora</Text>
+                </View>
+                {expandedSection === "prompts" && (
+                  <View style={styles.videoPackCardBody}>
+                    {recipe.shortVideoPack.videoGenerationPrompts.map((prompt, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.promptItem}
+                        onPress={() => copyToClipboard(prompt, idx)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.promptText}>{prompt}</Text>
+                        <View style={styles.copyButton}>
+                          {copiedIndex === idx ? (
+                            <Check size={14} color={Colors.light.success} />
+                          ) : (
+                            <Copy size={14} color={Colors.light.textSecondary} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                    <View style={styles.heroPromptCard}>
+                      <Text style={styles.heroPromptLabel}>🎬 Hero Shot Prompt</Text>
+                      <TouchableOpacity
+                        onPress={() => copyToClipboard(recipe.shortVideoPack?.finalHeroShotPrompt ?? "", 999)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.heroPromptText}>{recipe.shortVideoPack.finalHeroShotPrompt}</Text>
+                        <View style={styles.copyButtonInline}>
+                          {copiedIndex === 999 ? (
+                            <Check size={14} color={Colors.light.success} />
+                          ) : (
+                            <Copy size={14} color={Colors.light.coral} />
+                          )}
+                          <Text style={styles.copyText}>{copiedIndex === 999 ? "Copied!" : "Copy prompt"}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Captions & Hashtags */}
+              <TouchableOpacity
+                style={styles.videoPackCard}
+                onPress={() => toggleSection("captions")}
+                activeOpacity={0.8}
+              >
+                <View style={styles.videoPackCardHeader}>
+                  <View style={styles.videoPackCardIcon}>
+                    <MessageSquare size={16} color={Colors.light.success} />
+                  </View>
+                  <Text style={styles.videoPackCardTitle}>Captions & Hashtags</Text>
+                </View>
+                {expandedSection === "captions" && (
+                  <View style={styles.videoPackCardBody}>
+                    <Text style={styles.captionsLabel}>Auto Captions</Text>
+                    {recipe.shortVideoPack.autoCaptions.map((caption, idx) => (
+                      <View key={idx} style={styles.captionItem}>
+                        <Text style={styles.captionText}>{caption}</Text>
+                      </View>
+                    ))}
+                    <View style={styles.ctaCard}>
+                      <Text style={styles.ctaLabel}>CTA</Text>
+                      <Text style={styles.ctaText}>{recipe.shortVideoPack.cta}</Text>
+                    </View>
+                    <View style={styles.hashtagsContainer}>
+                      <View style={styles.hashtagsHeader}>
+                        <Hash size={14} color={Colors.light.sapphire} />
+                        <Text style={styles.hashtagsLabel}>Hashtags</Text>
+                      </View>
+                      <View style={styles.hashtagsWrap}>
+                        {recipe.shortVideoPack.hashtags.map((tag, idx) => (
+                          <TouchableOpacity
+                            key={idx}
+                            style={styles.hashtagChip}
+                            onPress={() => copyToClipboard(tag, 1000 + idx)}
+                          >
+                            <Text style={styles.hashtagText}>{tag}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.copyAllHashtags}
+                        onPress={() => copyToClipboard(recipe.shortVideoPack?.hashtags.join(" ") ?? "", 2000)}
+                      >
+                        {copiedIndex === 2000 ? (
+                          <Check size={14} color={Colors.light.success} />
+                        ) : (
+                          <Copy size={14} color={Colors.light.sapphire} />
+                        )}
+                        <Text style={styles.copyAllText}>{copiedIndex === 2000 ? "Copied all!" : "Copy all hashtags"}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={styles.bottomSpacer} />
@@ -537,6 +773,288 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 20,
+  },
+  videoPackSection: {
+    marginBottom: 24,
+    backgroundColor: Colors.light.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  videoPackHeader: {
+    marginBottom: 16,
+  },
+  videoPackTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  videoPackTitle: {
+    fontSize: 18,
+    fontWeight: "800" as const,
+    color: Colors.light.text,
+  },
+  videoPackSubtitle: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    marginTop: 4,
+    marginLeft: 28,
+  },
+  generateVideoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: Colors.light.coral,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  generateVideoButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800" as const,
+  },
+  videoPackContent: {
+    gap: 12,
+  },
+  videoPackCard: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    overflow: "hidden",
+  },
+  videoPackCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    gap: 10,
+  },
+  videoPackCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.light.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoPackCardTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: Colors.light.text,
+  },
+  videoPackCardBadge: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+    backgroundColor: Colors.light.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  videoPackCardBody: {
+    padding: 14,
+    paddingTop: 0,
+    gap: 10,
+  },
+  scriptItem: {
+    flexDirection: "row",
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  scriptTimecode: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: Colors.light.coral,
+    width: 80,
+  },
+  scriptContent: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.light.text,
+    lineHeight: 18,
+  },
+  storyboardShot: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 10,
+    padding: 12,
+  },
+  shotHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  shotNumber: {
+    fontSize: 13,
+    fontWeight: "800" as const,
+    color: Colors.light.sapphire,
+  },
+  shotDuration: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  shotAngle: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: Colors.light.gold,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  shotAction: {
+    fontSize: 13,
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  shotMeta: {
+    gap: 4,
+  },
+  shotText: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+  },
+  shotSound: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+  },
+  promptItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: Colors.light.surface,
+    padding: 12,
+    borderRadius: 10,
+  },
+  promptText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.light.text,
+    lineHeight: 18,
+  },
+  copyButton: {
+    padding: 4,
+  },
+  heroPromptCard: {
+    backgroundColor: Colors.light.coral + "15",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.coral + "30",
+  },
+  heroPromptLabel: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    color: Colors.light.coral,
+    marginBottom: 8,
+  },
+  heroPromptText: {
+    fontSize: 13,
+    color: Colors.light.text,
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  copyButtonInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  copyText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.coral,
+  },
+  captionsLabel: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    color: Colors.light.textSecondary,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  captionItem: {
+    backgroundColor: Colors.light.surface,
+    padding: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.light.success,
+  },
+  captionText: {
+    fontSize: 13,
+    color: Colors.light.text,
+  },
+  ctaCard: {
+    backgroundColor: Colors.light.tintLight,
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  ctaLabel: {
+    fontSize: 10,
+    fontWeight: "800" as const,
+    color: Colors.light.tint,
+    textTransform: "uppercase" as const,
+    marginBottom: 4,
+  },
+  ctaText: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: Colors.light.tint,
+  },
+  hashtagsContainer: {
+    marginTop: 12,
+  },
+  hashtagsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+  },
+  hashtagsLabel: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.light.sapphire,
+  },
+  hashtagsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  hashtagChip: {
+    backgroundColor: Colors.light.sapphire + "15",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  hashtagText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.sapphire,
+  },
+  copyAllHashtags: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 10,
+    backgroundColor: Colors.light.sapphire + "10",
+    borderRadius: 10,
+  },
+  copyAllText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.light.sapphire,
   },
   errorText: {
     fontSize: 16,
