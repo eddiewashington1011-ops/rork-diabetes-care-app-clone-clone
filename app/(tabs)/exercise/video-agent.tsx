@@ -68,7 +68,7 @@ export default function ExerciseVideoAgentScreen() {
     return () => pulse.stop();
   }, [pulseAnim]);
 
-  const { messages, sendMessage, status } = useRorkAgent({
+  const { messages, sendMessage, status, error } = useRorkAgent({
     tools: {
       generateVideoScript: createRorkTool({
         description: "Generate a time-coded video script for a short-form workout video (30-60 seconds). Use this when the user wants to create a video script or plan video content.",
@@ -515,6 +515,12 @@ export default function ExerciseVideoAgentScreen() {
               <Text style={styles.loadingText}>Creating content...</Text>
             </View>
           )}
+
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>⚠️ {error.message || "Something went wrong. Please try again."}</Text>
+            </View>
+          )}
         </ScrollView>
 
         <View style={styles.inputContainer}>
@@ -677,6 +683,17 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     color: Colors.light.textSecondary,
+  },
+  errorContainer: {
+    backgroundColor: Colors.light.dangerLight,
+    padding: 14,
+    borderRadius: 12,
+    marginVertical: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.light.danger,
+    textAlign: "center",
   },
   generatedContainer: {
     marginTop: 16,
