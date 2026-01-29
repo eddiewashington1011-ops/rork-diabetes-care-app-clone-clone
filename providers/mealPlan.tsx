@@ -206,7 +206,7 @@ type CoachDay = z.infer<typeof CoachDaySchema>;
 
 const CoachPlanSchema = z.object({
   days: z.array(CoachDaySchema).min(7).max(7),
-  summary: z.string().min(1).max(800),
+  summary: z.string().min(1).max(280),
 });
 
 
@@ -436,7 +436,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         `Dinner pool: ${JSON.stringify(dinnerPool)}\n` +
         `Snack recipe pool: ${JSON.stringify(snackPool)}\n` +
         `Snack names: ${JSON.stringify(QUICK_SNACKS.map((s) => s.name))}\n` +
-        "Rules: Use variety across the week. Avoid repeating the same dinner more than 2x. Prefer lower carbs for snacks. Return exactly 7 days.";
+        "Rules: Use variety across the week. Avoid repeating the same dinner more than 2x. Prefer lower carbs for snacks. Return exactly 7 days. Keep summary brief (under 200 characters).";
 
       let isOffline = false;
       let generatedDays: CoachDay[] = [];
