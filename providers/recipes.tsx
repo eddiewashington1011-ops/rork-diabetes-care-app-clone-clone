@@ -414,6 +414,28 @@ function localFallbackRecipe(input: { goal: string; preferences: string }): Omit
   };
 }
 
+function isNetworkOrOfflineError(error: string): boolean {
+  const lowerError = error.toLowerCase();
+  const offlinePatterns = [
+    "offline",
+    "network",
+    "fetch",
+    "timeout",
+    "err_ngrok",
+    "econnrefused",
+    "enotfound",
+    "socket",
+    "connection",
+    "unreachable",
+    "failed to fetch",
+    "load failed",
+    "net::",
+    "cors",
+    "aborted",
+  ];
+  return offlinePatterns.some((p) => lowerError.includes(p));
+}
+
 async function agentGenerateRecipe(input: { goal: string; preferences: string }): Promise<{ recipe: Omit<CoachRecipe, "id" | "image" | "source">; isOffline: boolean; errorMessage?: string }> {
   const system = buildAgentSystemPrompt();
   const userPrompt =
@@ -462,11 +484,12 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
     };
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : String(e);
-    console.error("[recipes] agentGenerateRecipe: AI call failed; using offline fallback", { error: errorMessage });
+    const isOffline = isNetworkOrOfflineError(errorMessage);
+    console.error("[recipes] agentGenerateRecipe: AI call failed; using offline fallback", { error: errorMessage, isOffline });
     return {
       recipe: localFallbackRecipe(input),
       isOffline: true,
-      errorMessage,
+      errorMessage: isOffline ? "Dia is offline" : errorMessage,
     };
   }
 }

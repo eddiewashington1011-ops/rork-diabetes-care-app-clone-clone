@@ -370,11 +370,11 @@ export default function RecipesScreen() {
         >
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()} testID="cookbook-coach-modal">
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-              {lastError && lastError.toLowerCase().includes("offline") && (
+              {lastError && (lastError.toLowerCase().includes("offline") || lastError.toLowerCase().includes("network") || lastError.toLowerCase().includes("ngrok")) && (
                 <View style={styles.offlineBanner} testID="cookbook-coach-offline-banner">
                   <WifiOff size={16} color="#fff" />
                   <Text style={styles.offlineBannerText}>Dia is offline</Text>
-                  <Text style={styles.offlineBannerSub}>Recipes will be generated locally</Text>
+                  <Text style={styles.offlineBannerSub}>Recipes will be generated locally (still delicious!)</Text>
                 </View>
               )}
 
@@ -439,7 +439,7 @@ export default function RecipesScreen() {
                 )}
               </TouchableOpacity>
 
-              {lastError && !lastError.toLowerCase().includes("offline") ? (
+              {lastError && !lastError.toLowerCase().includes("offline") && !lastError.toLowerCase().includes("network") && !lastError.toLowerCase().includes("ngrok") ? (
                 <Text style={styles.modalErrorText}>{lastError}</Text>
               ) : null}
             </KeyboardAvoidingView>
