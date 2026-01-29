@@ -200,6 +200,16 @@ export default function MealPlanScreen() {
   }, []);
 
   const onRunCoach = useCallback(async () => {
+    console.log("[meal-plan] onRunCoach:pressed", {
+      coachGoal,
+      coachCookingSkill,
+      coachCookingTimeMinutes,
+      coachDietaryStyle,
+      coachAllergies,
+      coachTargetCarbs,
+      hasNotes: coachNotes.trim().length > 0,
+    });
+
     const cookingTime = Number(coachCookingTimeMinutes);
     const targetCarbs = Number(coachTargetCarbs);
 
@@ -491,9 +501,15 @@ export default function MealPlanScreen() {
 
             <TouchableOpacity
               style={[styles.coachCta, coachBusy && styles.coachCtaDisabled]}
-              onPress={onRunCoach}
+              onPress={() => {
+                console.log("[meal-plan] coach-generate-plan:onPress", { coachBusy });
+                onRunCoach();
+              }}
+              onPressIn={() => console.log("[meal-plan] coach-generate-plan:onPressIn")}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               disabled={coachBusy}
               activeOpacity={0.85}
+              accessibilityRole="button"
               testID="coach-generate-plan"
             >
               {coachBusy ? <ActivityIndicator color="#fff" /> : <CheckCircle2 size={18} color="#fff" />}
