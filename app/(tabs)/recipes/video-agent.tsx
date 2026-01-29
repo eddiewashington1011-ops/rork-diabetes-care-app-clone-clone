@@ -39,6 +39,195 @@ type GeneratedContent = {
   data: Partial<ShortVideoPack>;
 };
 
+type RecipeRef = {
+  title: string;
+  carbsPerServing: number;
+  calories: number;
+  prepTime: number;
+  cookTime: number;
+} | null;
+
+type ContentSetter = React.Dispatch<React.SetStateAction<GeneratedContent | null>>;
+
+function createTools(recipeRef: React.MutableRefObject<RecipeRef>, setContent: ContentSetter) {
+  return {
+    generateVideoScript: createRorkTool({
+      description: "Generate a time-coded video script for a short-form cooking video (30-60 seconds). Use this when the user wants to create a video script or plan video content.",
+      zodSchema: z.object({
+        style: z.enum(["fast-paced", "educational", "asmr", "cinematic"]).describe("The style of the video"),
+        duration: z.number().min(15).max(90).describe("Target video duration in seconds"),
+        focusArea: z.string().optional().describe("What to emphasize: cooking process, final dish, nutrition info, etc."),
+      }),
+      execute: (toolInput) => {
+        console.log("[VideoAgent] generateVideoScript called", toolInput);
+        const recipe = recipeRef.current;
+        const script: VideoScriptScene[] = [
+          { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${recipe?.title ?? "the dish"} with steam rising` },
+          { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with nutrition overlay" },
+          { timecode: "[00:08-00:18]", content: `${toolInput.style === "fast-paced" ? "Rapid cuts of" : "Smooth shots showing"} prep work` },
+          { timecode: "[00:18-00:30]", content: "Main cooking action with satisfying sounds" },
+          { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups" },
+          { timecode: "[00:40-00:50]", content: "Hero shot + nutrition facts overlay" },
+          { timecode: "[00:50-00:60]", content: "CTA with fork bite shot" },
+        ];
+        setContent({ type: "script", data: { videoScript: script } });
+        return JSON.stringify({ success: true, scenes: script.length, style: toolInput.style });
+      },
+    }),
+
+    generateStoryboard: createRorkTool({
+      description: "Generate a detailed shot-by-shot storyboard for vertical video (9:16). Use when user wants camera angles, shot types, or visual planning.",
+      zodSchema: z.object({
+        shotCount: z.number().min(6).max(12).describe("Number of shots to generate"),
+        cameraStyle: z.enum(["overhead", "dynamic", "handheld", "tripod"]).describe("Primary camera style"),
+      }),
+      execute: (toolInput) => {
+        console.log("[VideoAgent] generateStoryboard called", toolInput);
+        const recipe = recipeRef.current;
+        const angles = ["overhead", "close-up", "45-degree", "eye-level", "slow pan", "macro"];
+        const shots: StoryboardShot[] = Array.from({ length: toolInput.shotCount }, (_, i) => ({
+          shotNumber: i + 1,
+          duration: `${2 + Math.floor(Math.random() * 3)}s`,
+          angle: angles[i % angles.length] ?? "overhead",
+          action: i === 0 ? "Hero reveal shot" : i === toolInput.shotCount - 1 ? "Final bite shot" : `Cooking step ${i}`,
+          onScreenText: i === 0 ? recipe?.title ?? "Recipe" : i === 1 ? `${recipe?.carbsPerServing ?? 20}g carbs` : "",
+          soundCue: i === 0 ? "Music hit" : ["sizzle", "chop", "pour", "stir"][i % 4] ?? "ambient",
+        }));
+        setContent({ type: "storyboard", data: { verticalStoryboard: shots } });
+        return JSON.stringify({ success: true, shots: shots.length, style: toolInput.cameraStyle });
+      },
+    }),
+
+    generateAIVideoPrompts: createRorkTool({
+      description: "Generate prompts for AI video tools like Runway, Sora, Pika, or Luma. Use when user wants to create AI-generated video clips.",
+      zodSchema: z.object({
+        tool: z.enum(["runway", "sora", "pika", "luma", "generic"]).describe("Target AI video tool"),
+        promptCount: z.number().min(3).max(10).describe("Number of prompts to generate"),
+      }),
+      execute: (toolInput) => {
+        console.log("[VideoAgent] generateAIVideoPrompts called", toolInput);
+        const recipe = recipeRef.current;
+        const title = recipe?.title ?? "delicious dish";
+        const prompts = [
+          `Cinematic overhead shot of ${title}, steam rising gently, professional food photography lighting, 9:16 vertical format, 4K quality`,
+          `Close-up of fresh ingredients on marble counter, soft natural window lighting, shallow depth of field, vertical format`,
+          `Smooth tracking shot of chef's hands chopping vegetables, wooden cutting board, satisfying cooking video aesthetic`,
+          `Eye-level shot of ingredients sizzling in pan, steam and movement visible, warm kitchen lighting, professional food video`,
+          `Macro close-up of sauce being drizzled over dish, slow motion feel, restaurant quality presentation`,
+          `45-degree angle of beautifully plated ${title}, garnished with fresh herbs, soft diffused lighting`,
+          `Close-up of fork lifting perfect bite, steam visible, appetizing food porn aesthetic, vertical format`,
+        ].slice(0, toolInput.promptCount);
+        
+        const heroPrompt = `Professional food photography of ${title}, perfectly plated on elegant ceramic dish, soft side lighting with gentle shadows, shallow depth of field, garnished with microgreens, steam rising delicately, warm inviting color palette, 9:16 vertical, makes viewer hungry, ${toolInput.tool === "runway" ? "cinematic motion" : "hyper-realistic"}`;
+        
+        setContent({ 
+          type: "prompts", 
+          data: { videoGenerationPrompts: prompts, finalHeroShotPrompt: heroPrompt } 
+        });
+        return JSON.stringify({ success: true, prompts: prompts.length, tool: toolInput.tool });
+      },
+    }),
+
+    generateCaptionsAndHashtags: createRorkTool({
+      description: "Generate auto-captions, CTAs, and hashtags for social media posting. Use when user wants text content for TikTok, Reels, or Shorts.",
+      zodSchema: z.object({
+        platform: z.enum(["tiktok", "instagram", "youtube", "all"]).describe("Target platform"),
+        tone: z.enum(["educational", "fun", "trendy", "professional"]).describe("Tone of the captions"),
+      }),
+      execute: (toolInput) => {
+        console.log("[VideoAgent] generateCaptionsAndHashtags called", toolInput);
+        const recipe = recipeRef.current;
+        const captions = [
+          `${recipe?.title ?? "This recipe"} - only ${recipe?.carbsPerServing ?? 20}g carbs!`,
+          "Perfect for blood sugar control",
+          "No added sugars in this one!",
+          `${recipe?.calories ?? 350} calories of pure satisfaction`,
+          `Ready in ${(recipe?.prepTime ?? 10) + (recipe?.cookTime ?? 15)} minutes`,
+          "Diabetes-friendly comfort food",
+        ];
+        
+        const hashtags = toolInput.platform === "tiktok" 
+          ? ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#diabetesawareness", "#mealprep", "#healthyrecipes"]
+          : toolInput.platform === "instagram"
+          ? ["#diabetesfriendly", "#lowcarbrecipes", "#healthyeating", "#bloodsugarcontrol", "#mealprep", "#cleaneating", "#healthyfood"]
+          : ["#diabetesfriendly", "#lowcarb", "#healthyrecipes", "#bloodsugar", "#mealprep", "#healthyeating", "#diabetesawareness"];
+        
+        const cta = toolInput.tone === "fun" 
+          ? "Save this and try it tonight!"
+          : toolInput.tone === "educational"
+          ? "Save for your next meal prep session"
+          : "Follow for more diabetes-friendly recipes!";
+        
+        setContent({ 
+          type: "captions", 
+          data: { autoCaptions: captions, hashtags, cta } 
+        });
+        return JSON.stringify({ success: true, captions: captions.length, hashtags: hashtags.length, platform: toolInput.platform });
+      },
+    }),
+
+    generateFullVideoPack: createRorkTool({
+      description: "Generate a complete video content pack with script, storyboard, AI prompts, captions, and hashtags. Use when user wants everything at once.",
+      zodSchema: z.object({
+        style: z.enum(["viral", "educational", "aesthetic", "quick"]).describe("Overall content style"),
+      }),
+      execute: (toolInput) => {
+        console.log("[VideoAgent] generateFullVideoPack called", toolInput);
+        const recipe = recipeRef.current;
+        if (!recipe) return JSON.stringify({ success: false, error: "No recipe found" });
+        
+        const script: VideoScriptScene[] = [
+          { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${recipe.title} with steam rising` },
+          { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with nutrition overlay" },
+          { timecode: "[00:08-00:18]", content: `${toolInput.style === "viral" ? "Rapid cuts of" : "Smooth shots showing"} prep work` },
+          { timecode: "[00:18-00:30]", content: "Main cooking action with satisfying sounds" },
+          { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups" },
+          { timecode: "[00:40-00:50]", content: "Hero shot + nutrition facts overlay" },
+          { timecode: "[00:50-00:60]", content: "CTA with fork bite shot" },
+        ];
+
+        const storyboard: StoryboardShot[] = [
+          { shotNumber: 1, duration: "3s", angle: "overhead", action: "Hero reveal", onScreenText: recipe.title, soundCue: "Music hit" },
+          { shotNumber: 2, duration: "5s", angle: "close-up", action: "Ingredients", onScreenText: `${recipe.carbsPerServing}g carbs`, soundCue: "upbeat" },
+          { shotNumber: 3, duration: "10s", angle: "45-degree", action: "Prep work", onScreenText: "", soundCue: "chop sounds" },
+          { shotNumber: 4, duration: "12s", angle: "eye-level", action: "Cooking", onScreenText: "", soundCue: "sizzle" },
+          { shotNumber: 5, duration: "10s", angle: "overhead", action: "Plating", onScreenText: "", soundCue: "transition" },
+          { shotNumber: 6, duration: "5s", angle: "hero", action: "Final shot", onScreenText: "CTA", soundCue: "Music finale" },
+        ];
+
+        const prompts = [
+          `Cinematic overhead shot of ${recipe.title}, steam rising, professional food photography, 9:16 vertical, 4K`,
+          `Close-up of fresh ingredients on marble counter, soft natural lighting, shallow depth of field`,
+          `Smooth tracking shot of cooking process, warm kitchen lighting, professional food video`,
+        ];
+
+        const captions = [
+          `${recipe.title} - only ${recipe.carbsPerServing}g carbs!`,
+          "Perfect for blood sugar control",
+          `${recipe.calories} calories of pure satisfaction`,
+          "Diabetes-friendly comfort food",
+        ];
+
+        const hashtags = ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#mealprep", "#healthyrecipes"];
+        
+        setContent({ 
+          type: "full_pack", 
+          data: { 
+            videoScript: script, 
+            verticalStoryboard: storyboard, 
+            videoGenerationPrompts: prompts,
+            finalHeroShotPrompt: `Professional food photography of ${recipe.title}, perfectly plated, soft lighting, 9:16 vertical`,
+            autoCaptions: captions,
+            hashtags,
+            cta: "Save this and try it tonight!"
+          } 
+        });
+        return JSON.stringify({ success: true, message: "Full video pack generated!" });
+      },
+    }),
+  };
+}
+
 export default function VideoAgentScreen() {
   const { recipeId } = useLocalSearchParams<{ recipeId: string }>();
   const { getRecipeById } = useRecipes();
@@ -50,6 +239,17 @@ export default function VideoAgentScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  const recipeRef = useRef<RecipeRef>(null);
+  recipeRef.current = recipe ? {
+    title: recipe.title,
+    carbsPerServing: recipe.carbsPerServing,
+    calories: recipe.calories,
+    prepTime: recipe.prepTime,
+    cookTime: recipe.cookTime,
+  } : null;
+
+  const toolsRef = useRef(createTools(recipeRef, setGeneratedContent));
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -63,177 +263,7 @@ export default function VideoAgentScreen() {
   }, [pulseAnim]);
 
   const { messages, sendMessage, status, error } = useRorkAgent({
-    tools: {
-      generateVideoScript: createRorkTool({
-        description: "Generate a time-coded video script for a short-form cooking video (30-60 seconds). Use this when the user wants to create a video script or plan video content.",
-        zodSchema: z.object({
-          style: z.enum(["fast-paced", "educational", "asmr", "cinematic"]).describe("The style of the video"),
-          duration: z.number().min(15).max(90).describe("Target video duration in seconds"),
-          focusArea: z.string().optional().describe("What to emphasize: cooking process, final dish, nutrition info, etc."),
-        }),
-        execute: (toolInput) => {
-          console.log("[VideoAgent] generateVideoScript called", toolInput);
-          const script: VideoScriptScene[] = [
-            { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${recipe?.title ?? "the dish"} with steam rising` },
-            { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with nutrition overlay" },
-            { timecode: "[00:08-00:18]", content: `${toolInput.style === "fast-paced" ? "Rapid cuts of" : "Smooth shots showing"} prep work` },
-            { timecode: "[00:18-00:30]", content: "Main cooking action with satisfying sounds" },
-            { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups" },
-            { timecode: "[00:40-00:50]", content: "Hero shot + nutrition facts overlay" },
-            { timecode: "[00:50-00:60]", content: "CTA with fork bite shot" },
-          ];
-          setGeneratedContent({ type: "script", data: { videoScript: script } });
-          return JSON.stringify({ success: true, scenes: script.length, style: toolInput.style });
-        },
-      }),
-
-      generateStoryboard: createRorkTool({
-        description: "Generate a detailed shot-by-shot storyboard for vertical video (9:16). Use when user wants camera angles, shot types, or visual planning.",
-        zodSchema: z.object({
-          shotCount: z.number().min(6).max(12).describe("Number of shots to generate"),
-          cameraStyle: z.enum(["overhead", "dynamic", "handheld", "tripod"]).describe("Primary camera style"),
-        }),
-        execute: (toolInput) => {
-          console.log("[VideoAgent] generateStoryboard called", toolInput);
-          const angles = ["overhead", "close-up", "45-degree", "eye-level", "slow pan", "macro"];
-          const shots: StoryboardShot[] = Array.from({ length: toolInput.shotCount }, (_, i) => ({
-            shotNumber: i + 1,
-            duration: `${2 + Math.floor(Math.random() * 3)}s`,
-            angle: angles[i % angles.length] ?? "overhead",
-            action: i === 0 ? "Hero reveal shot" : i === toolInput.shotCount - 1 ? "Final bite shot" : `Cooking step ${i}`,
-            onScreenText: i === 0 ? recipe?.title ?? "Recipe" : i === 1 ? `${recipe?.carbsPerServing ?? 20}g carbs` : "",
-            soundCue: i === 0 ? "Music hit" : ["sizzle", "chop", "pour", "stir"][i % 4] ?? "ambient",
-          }));
-          setGeneratedContent({ type: "storyboard", data: { verticalStoryboard: shots } });
-          return JSON.stringify({ success: true, shots: shots.length, style: toolInput.cameraStyle });
-        },
-      }),
-
-      generateAIVideoPrompts: createRorkTool({
-        description: "Generate prompts for AI video tools like Runway, Sora, Pika, or Luma. Use when user wants to create AI-generated video clips.",
-        zodSchema: z.object({
-          tool: z.enum(["runway", "sora", "pika", "luma", "generic"]).describe("Target AI video tool"),
-          promptCount: z.number().min(3).max(10).describe("Number of prompts to generate"),
-        }),
-        execute: (toolInput) => {
-          console.log("[VideoAgent] generateAIVideoPrompts called", toolInput);
-          const title = recipe?.title ?? "delicious dish";
-          const prompts = [
-            `Cinematic overhead shot of ${title}, steam rising gently, professional food photography lighting, 9:16 vertical format, 4K quality`,
-            `Close-up of fresh ingredients on marble counter, soft natural window lighting, shallow depth of field, vertical format`,
-            `Smooth tracking shot of chef's hands chopping vegetables, wooden cutting board, satisfying cooking video aesthetic`,
-            `Eye-level shot of ingredients sizzling in pan, steam and movement visible, warm kitchen lighting, professional food video`,
-            `Macro close-up of sauce being drizzled over dish, slow motion feel, restaurant quality presentation`,
-            `45-degree angle of beautifully plated ${title}, garnished with fresh herbs, soft diffused lighting`,
-            `Close-up of fork lifting perfect bite, steam visible, appetizing food porn aesthetic, vertical format`,
-          ].slice(0, toolInput.promptCount);
-          
-          const heroPrompt = `Professional food photography of ${title}, perfectly plated on elegant ceramic dish, soft side lighting with gentle shadows, shallow depth of field, garnished with microgreens, steam rising delicately, warm inviting color palette, 9:16 vertical, makes viewer hungry, ${toolInput.tool === "runway" ? "cinematic motion" : "hyper-realistic"}`;
-          
-          setGeneratedContent({ 
-            type: "prompts", 
-            data: { videoGenerationPrompts: prompts, finalHeroShotPrompt: heroPrompt } 
-          });
-          return JSON.stringify({ success: true, prompts: prompts.length, tool: toolInput.tool });
-        },
-      }),
-
-      generateCaptionsAndHashtags: createRorkTool({
-        description: "Generate auto-captions, CTAs, and hashtags for social media posting. Use when user wants text content for TikTok, Reels, or Shorts.",
-        zodSchema: z.object({
-          platform: z.enum(["tiktok", "instagram", "youtube", "all"]).describe("Target platform"),
-          tone: z.enum(["educational", "fun", "trendy", "professional"]).describe("Tone of the captions"),
-        }),
-        execute: (toolInput) => {
-          console.log("[VideoAgent] generateCaptionsAndHashtags called", toolInput);
-          const captions = [
-            `${recipe?.title ?? "This recipe"} - only ${recipe?.carbsPerServing ?? 20}g carbs!`,
-            "Perfect for blood sugar control 🩸✨",
-            "No added sugars in this one!",
-            `${recipe?.calories ?? 350} calories of pure satisfaction`,
-            `Ready in ${(recipe?.prepTime ?? 10) + (recipe?.cookTime ?? 15)} minutes`,
-            "Diabetes-friendly comfort food 💚",
-          ];
-          
-          const hashtags = toolInput.platform === "tiktok" 
-            ? ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#diabetesawareness", "#mealprep", "#healthyrecipes"]
-            : toolInput.platform === "instagram"
-            ? ["#diabetesfriendly", "#lowcarbrecipes", "#healthyeating", "#bloodsugarcontrol", "#mealprep", "#cleaneating", "#healthyfood"]
-            : ["#diabetesfriendly", "#lowcarb", "#healthyrecipes", "#bloodsugar", "#mealprep", "#healthyeating", "#diabetesawareness"];
-          
-          const cta = toolInput.tone === "fun" 
-            ? "Save this and try it tonight! 🔥"
-            : toolInput.tone === "educational"
-            ? "Save for your next meal prep session 📌"
-            : "Follow for more diabetes-friendly recipes!";
-          
-          setGeneratedContent({ 
-            type: "captions", 
-            data: { autoCaptions: captions, hashtags, cta } 
-          });
-          return JSON.stringify({ success: true, captions: captions.length, hashtags: hashtags.length, platform: toolInput.platform });
-        },
-      }),
-
-      generateFullVideoPack: createRorkTool({
-        description: "Generate a complete video content pack with script, storyboard, AI prompts, captions, and hashtags. Use when user wants everything at once.",
-        zodSchema: z.object({
-          style: z.enum(["viral", "educational", "aesthetic", "quick"]).describe("Overall content style"),
-        }),
-        execute: (toolInput) => {
-          console.log("[VideoAgent] generateFullVideoPack called", toolInput);
-          if (!recipe) return JSON.stringify({ success: false, error: "No recipe found" });
-          
-          const script: VideoScriptScene[] = [
-            { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${recipe.title} with steam rising` },
-            { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with nutrition overlay" },
-            { timecode: "[00:08-00:18]", content: `${toolInput.style === "viral" ? "Rapid cuts of" : "Smooth shots showing"} prep work` },
-            { timecode: "[00:18-00:30]", content: "Main cooking action with satisfying sounds" },
-            { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups" },
-            { timecode: "[00:40-00:50]", content: "Hero shot + nutrition facts overlay" },
-            { timecode: "[00:50-00:60]", content: "CTA with fork bite shot" },
-          ];
-
-          const storyboard: StoryboardShot[] = [
-            { shotNumber: 1, duration: "3s", angle: "overhead", action: "Hero reveal", onScreenText: recipe.title, soundCue: "Music hit" },
-            { shotNumber: 2, duration: "5s", angle: "close-up", action: "Ingredients", onScreenText: `${recipe.carbsPerServing}g carbs`, soundCue: "upbeat" },
-            { shotNumber: 3, duration: "10s", angle: "45-degree", action: "Prep work", onScreenText: "", soundCue: "chop sounds" },
-            { shotNumber: 4, duration: "12s", angle: "eye-level", action: "Cooking", onScreenText: "", soundCue: "sizzle" },
-            { shotNumber: 5, duration: "10s", angle: "overhead", action: "Plating", onScreenText: "", soundCue: "transition" },
-            { shotNumber: 6, duration: "5s", angle: "hero", action: "Final shot", onScreenText: "CTA", soundCue: "Music finale" },
-          ];
-
-          const prompts = [
-            `Cinematic overhead shot of ${recipe.title}, steam rising, professional food photography, 9:16 vertical, 4K`,
-            `Close-up of fresh ingredients on marble counter, soft natural lighting, shallow depth of field`,
-            `Smooth tracking shot of cooking process, warm kitchen lighting, professional food video`,
-          ];
-
-          const captions = [
-            `${recipe.title} - only ${recipe.carbsPerServing}g carbs!`,
-            "Perfect for blood sugar control 🩸✨",
-            `${recipe.calories} calories of pure satisfaction`,
-            "Diabetes-friendly comfort food 💚",
-          ];
-
-          const hashtags = ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#mealprep", "#healthyrecipes"];
-          
-          setGeneratedContent({ 
-            type: "full_pack", 
-            data: { 
-              videoScript: script, 
-              verticalStoryboard: storyboard, 
-              videoGenerationPrompts: prompts,
-              finalHeroShotPrompt: `Professional food photography of ${recipe.title}, perfectly plated, soft lighting, 9:16 vertical`,
-              autoCaptions: captions,
-              hashtags,
-              cta: "Save this and try it tonight! 🔥"
-            } 
-          });
-          return JSON.stringify({ success: true, message: "Full video pack generated!" });
-        },
-      }),
-    },
+    tools: toolsRef.current,
   });
 
   const isLoading = status === "streaming" || status === "submitted";
