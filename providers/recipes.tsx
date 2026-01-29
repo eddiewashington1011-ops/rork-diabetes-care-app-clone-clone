@@ -350,20 +350,25 @@ function localFallbackRecipe(input: { goal: string; preferences: string }): Omit
 
 async function agentGenerateRecipe(input: { goal: string; preferences: string }): Promise<Omit<CoachRecipe, "id" | "image" | "source">> {
   const system = buildAgentSystemPrompt();
-  const user =
+  const userPrompt =
+    `${system}\n\n` +
     `Goal: ${input.goal || "blood sugar control"}\n` +
     `Preferences: ${input.preferences || "(none)"}\n` +
     "Constraints: no added sugar; limit refined carbs; include fiber; keep sodium reasonable. " +
-    "Output must include calories, carbsPerServing, fiberG, sugarG, proteinG, fatG, glycemicLoad.";
+    "Output must include calories, carbsPerServing, fiberG, sugarG, proteinG, fatG, glycemicLoad. " +
+    "Generate a complete diabetes-friendly recipe now.";
+
+  console.log("[recipes] agentGenerateRecipe: calling generateObject");
 
   try {
     const res = await generateObject({
       messages: [
-        { role: "assistant", content: system },
-        { role: "user", content: user },
+        { role: "user", content: userPrompt },
       ],
       schema: AgentRecipeSchema,
     });
+
+    console.log("[recipes] agentGenerateRecipe: got response", { title: res.title });
 
     return {
       title: res.title,
@@ -386,8 +391,9 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
       skillLevel: res.skillLevel,
       origin: "Dia",
     };
-  } catch (e) {
-    console.error("[recipes] agentGenerateRecipe: AI call failed; using offline fallback", { e });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error("[recipes] agentGenerateRecipe: AI call failed; using offline fallback", { error: errorMessage });
     return localFallbackRecipe(input);
   }
 }
