@@ -438,13 +438,19 @@ function isNetworkOrOfflineError(error: string): boolean {
 
 async function agentGenerateRecipe(input: { goal: string; preferences: string }): Promise<{ recipe: Omit<CoachRecipe, "id" | "image" | "source">; isOffline: boolean; errorMessage?: string }> {
   const system = buildAgentSystemPrompt();
+  
+  const hasPreferences = input.preferences.trim().length > 0;
+  const preferencesInstruction = hasPreferences
+    ? `IMPORTANT - User's specific request: "${input.preferences}". You MUST create a recipe that matches this request exactly. If they ask for fish, use fish. If they ask for chicken, use chicken. If they want vegetarian, make it vegetarian. Their request is the top priority.`
+    : "No specific preferences provided.";
+
   const userPrompt =
     `${system}\n\n` +
-    `Goal: ${input.goal || "blood sugar control"}\n` +
-    `Preferences: ${input.preferences || "(none)"}\n` +
+    `Goal: ${input.goal || "blood sugar control"}\n\n` +
+    `${preferencesInstruction}\n\n` +
     "Constraints: no added sugar; limit refined carbs; include fiber; keep sodium reasonable. " +
     "Output must include calories, carbsPerServing, fiberG, sugarG, proteinG, fatG, glycemicLoad. " +
-    "Generate a complete diabetes-friendly recipe now.";
+    "Generate a complete diabetes-friendly recipe that EXACTLY matches the user's request now.";
 
   console.log("[recipes] agentGenerateRecipe: calling generateObject");
 
