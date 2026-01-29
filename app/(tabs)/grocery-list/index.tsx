@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,57 +8,31 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Animated,
 } from "react-native";
-import { Check, ShoppingCart, Package, RotateCcw, ChevronDown } from "lucide-react-native";
+import { Check, ShoppingCart, Package, RotateCcw, ChevronDown, ListChecks } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { useGroceryList } from "@/providers/groceryList";
 
 type Mode = "shop" | "have";
 
-function ModeChip({
-  mode,
-  active,
-  title,
-  subtitle,
-  onPress,
-  icon,
-  testID,
-}: {
-  mode: Mode;
-  active: boolean;
-  title: string;
-  subtitle: string;
-  onPress: () => void;
-  icon: React.ReactNode;
-  testID: string;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.85}
-      style={[styles.modeChip, active && styles.modeChipActive]}
-      testID={testID}
-    >
-      <View style={[styles.modeIconWrap, active && styles.modeIconWrapActive]}>{icon}</View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.modeTitle, active && styles.modeTitleActive]}>{title}</Text>
-        <Text style={[styles.modeSubtitle, active && styles.modeSubtitleActive]}>{subtitle}</Text>
-      </View>
-      {active ? (
-        <View style={styles.modeCheck}>
-          <Check size={14} color="#fff" />
-        </View>
-      ) : null}
-    </TouchableOpacity>
-  );
-}
-
 export default function GroceryListScreen() {
   const { sections, isHydrating, lastError, toggleHave, resetAllToShop } = useGroceryList();
 
   const [mode, setMode] = useState<Mode>("shop");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
+
+  const handleModeChange = useCallback((newMode: Mode) => {
+    setMode(newMode);
+    Animated.spring(tabIndicatorAnim, {
+      toValue: newMode === "shop" ? 0 : 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 30,
+    }).start();
+  }, [tabIndicatorAnim]);
 
   const visibleSections = useMemo(() => {
     return sections
@@ -102,57 +76,100 @@ export default function GroceryListScreen() {
 
   return (
     <View style={styles.screen} testID="grocery-list-screen">
+      {/* Fixed Header with Tabs */}
+      <View style={styles.fixedHeader}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerTitleRow}>
+            <View style={styles.headerIconWrap}>
+              <ListChecks size={20} color={Colors.light.tint} />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>Grocery List</Text>
+              <Text style={styles.headerMeta}>
+                {totals.shop} to shop • {totals.have} have
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.resetBtn}
+            onPress={onReset}
+            activeOpacity={0.85}
+            testID="grocery-list-reset"
+          >
+            <RotateCcw size={16} color={Colors.light.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {lastError ? (
+          <View style={styles.inlineError} testID="grocery-list-last-error">
+            <Text style={styles.inlineErrorText}>{lastError}</Text>
+          </View>
+        ) : null}
+
+        {/* Tab Bar */}
+        <View style={styles.tabBar}>
+          <Animated.View
+            style={[
+              styles.tabIndicator,
+              {
+                transform: [
+                  {
+                    translateX: tabIndicatorAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 150],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => handleModeChange("shop")}
+            activeOpacity={0.85}
+            testID="grocery-list-tab-shop"
+          >
+            <ShoppingCart
+              size={18}
+              color={mode === "shop" ? Colors.light.tint : Colors.light.textSecondary}
+            />
+            <Text style={[styles.tabText, mode === "shop" && styles.tabTextActive]}>
+              Shopping List
+            </Text>
+            <View style={[styles.tabBadge, mode === "shop" && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, mode === "shop" && styles.tabBadgeTextActive]}>
+                {totals.shop}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => handleModeChange("have")}
+            activeOpacity={0.85}
+            testID="grocery-list-tab-have"
+          >
+            <Package
+              size={18}
+              color={mode === "have" ? Colors.light.tint : Colors.light.textSecondary}
+            />
+            <Text style={[styles.tabText, mode === "have" && styles.tabTextActive]}>
+              In Pantry
+            </Text>
+            <View style={[styles.tabBadge, mode === "have" && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, mode === "have" && styles.tabBadgeTextActive]}>
+                {totals.have}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={false} onRefresh={() => {}} />}
         testID="grocery-list-scroll"
       >
-        <View style={styles.headerCard} testID="grocery-list-header-card">
-          <View style={styles.headerTopRow}>
-            <Text style={styles.headerTitle}>Your groceries</Text>
-            <TouchableOpacity
-              style={styles.resetBtn}
-              onPress={onReset}
-              activeOpacity={0.85}
-              testID="grocery-list-reset"
-            >
-              <RotateCcw size={16} color={Colors.light.text} />
-              <Text style={styles.resetBtnText}>Reset</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.headerSubtitle}>
-            Built from your current Meal Plan • {totals.shop} to shop • {totals.have} in pantry
-          </Text>
-
-          {lastError ? (
-            <View style={styles.inlineError} testID="grocery-list-last-error">
-              <Text style={styles.inlineErrorText}>{lastError}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.modeRow}>
-            <ModeChip
-              mode="shop"
-              active={mode === "shop"}
-              title="Shop"
-              subtitle="What you still need"
-              onPress={() => setMode("shop")}
-              icon={<ShoppingCart size={18} color={mode === "shop" ? "#fff" : Colors.light.textSecondary} />}
-              testID="grocery-list-mode-shop"
-            />
-            <ModeChip
-              mode="have"
-              active={mode === "have"}
-              title="Have"
-              subtitle="Already at home"
-              onPress={() => setMode("have")}
-              icon={<Package size={18} color={mode === "have" ? "#fff" : Colors.light.textSecondary} />}
-              testID="grocery-list-mode-have"
-            />
-          </View>
-        </View>
 
         {isHydrating ? (
           <View style={styles.loadingWrap} testID="grocery-list-loading">
@@ -241,61 +258,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
+  fixedHeader: {
+    backgroundColor: Colors.light.surface,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
   container: {
     flex: 1,
     padding: 20,
-  },
-  headerCard: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-    marginBottom: 14,
   },
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: 12,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.light.tint + "15",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "800" as const,
     color: Colors.light.text,
   },
-  headerSubtitle: {
+  headerMeta: {
     fontSize: 12,
-    lineHeight: 16,
     color: Colors.light.textSecondary,
-    marginBottom: 12,
+    marginTop: 2,
   },
   resetBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     backgroundColor: Colors.light.background,
     borderWidth: 1,
     borderColor: Colors.light.border,
-  },
-  resetBtnText: {
-    fontSize: 12,
-    fontWeight: "700" as const,
-    color: Colors.light.text,
+    alignItems: "center",
+    justifyContent: "center",
   },
   inlineError: {
     backgroundColor: Colors.light.dangerLight,
     borderRadius: 12,
     padding: 10,
-    marginBottom: 10,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.light.danger,
   },
@@ -304,64 +322,57 @@ const styles = StyleSheet.create({
     color: Colors.light.danger,
     fontWeight: "600" as const,
   },
-  modeRow: {
+  tabBar: {
     flexDirection: "row",
-    gap: 10,
+    position: "relative",
   },
-  modeChip: {
+  tabIndicator: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    width: 150,
+    height: 3,
+    backgroundColor: Colors.light.tint,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  },
+  tab: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    backgroundColor: Colors.light.background,
-  },
-  modeChipActive: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
-  },
-  modeIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.light.surface,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    gap: 8,
+    paddingVertical: 14,
+    maxWidth: 150,
   },
-  modeIconWrapActive: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  modeTitle: {
-    fontSize: 13,
-    fontWeight: "800" as const,
-    color: Colors.light.text,
-  },
-  modeTitleActive: {
-    color: "#fff",
-  },
-  modeSubtitle: {
-    fontSize: 11,
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
     color: Colors.light.textSecondary,
-    marginTop: 1,
   },
-  modeSubtitleActive: {
-    color: "rgba(255,255,255,0.85)",
+  tabTextActive: {
+    color: Colors.light.tint,
+    fontWeight: "700" as const,
   },
-  modeCheck: {
-    width: 22,
+  tabBadge: {
+    minWidth: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: Colors.light.background,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
+    paddingHorizontal: 6,
+  },
+  tabBadgeActive: {
+    backgroundColor: Colors.light.tint + "20",
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: Colors.light.textSecondary,
+  },
+  tabBadgeTextActive: {
+    color: Colors.light.tint,
   },
   loadingWrap: {
     paddingVertical: 22,
