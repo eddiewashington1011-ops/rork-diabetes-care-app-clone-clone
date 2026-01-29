@@ -214,9 +214,9 @@ export default function HomeScreen() {
       >
         <View style={styles.heroContent}>
           <Text style={styles.greeting}>Good Morning!</Text>
-          <Text style={styles.heroTitle}>Your Daily Diabetes Guide</Text>
+          <Text style={styles.heroTitle}>DiaCare</Text>
           <Text style={styles.heroSubtitle}>
-            Stay on track with personalized tips and healthy choices
+            The Diabetes personal Care App
           </Text>
         </View>
         <View style={styles.statsRow}>

@@ -6,6 +6,7 @@ import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { EngagementProvider } from "@/providers/engagement";
+import { MealPlanProvider } from "@/providers/mealPlan";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 
@@ -33,7 +34,9 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <AppErrorBoundary>
             <EngagementProvider>
-              <RootLayoutNav />
+              <MealPlanProvider>
+                <RootLayoutNav />
+              </MealPlanProvider>
             </EngagementProvider>
           </AppErrorBoundary>
         </GestureHandlerRootView>
