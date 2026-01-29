@@ -10,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { BottomCTA } from "@/components/BottomCTA";
 import { Clock, Users, Flame, Wheat, Sparkles, Trash2 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useRecipes } from "@/providers/recipes";
@@ -60,6 +61,11 @@ export default function RecipeDetailScreen() {
     ]);
   }, [deleteSavedRecipe, recipe, router]);
 
+  const onAskDia = useCallback(() => {
+    console.log("[RecipeDetail] ask dia pressed", { fromRecipeId: recipe?.id });
+    router.push({ pathname: "/(tabs)/recipes", params: { coach: "1" } } as never);
+  }, [recipe?.id, router]);
+
   if (!recipe) {
     return (
       <View style={styles.container} testID="recipe-not-found">
@@ -69,11 +75,12 @@ export default function RecipeDetailScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      testID="recipe-detail"
-    >
+    <View style={styles.container} testID="recipe-detail-shell">
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        testID="recipe-detail"
+      >
       <Image source={{ uri: recipe.image }} style={styles.heroImage} />
 
       <View style={styles.content}>
@@ -245,7 +252,15 @@ export default function RecipeDetailScreen() {
 
         <View style={styles.bottomSpacer} />
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <BottomCTA
+        title="Ask Dia"
+        subtitle="Generate a new recipe"
+        onPress={onAskDia}
+        testID="recipe-ask-dia"
+      />
+    </View>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Search, Clock, Flame, X, Globe, Leaf, CupSoda, Sparkles } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { BottomCTA } from "@/components/BottomCTA";
@@ -53,6 +53,7 @@ function RecipeCard({ recipe, onPress }: { recipe: CoachRecipe; onPress: () => v
 
 export default function RecipesScreen() {
   const router = useRouter();
+  const { coach } = useLocalSearchParams<{ coach?: string }>();
   const { getPage, totalVirtualCount, createRecipeWithAgent, isHydrating, lastError } = useRecipes();
 
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -62,6 +63,16 @@ export default function RecipesScreen() {
   const [coachGoal, setCoachGoal] = useState<string>("Blood sugar control");
   const [coachPrefs, setCoachPrefs] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (coach === "1") {
+      console.log("[cookbook] coach param detected - opening Dia modal");
+      setCoachOpen(true);
+      if (typeof router.setParams === "function") {
+        router.setParams({ coach: "0" });
+      }
+    }
+  }, [coach, router]);
 
   const onOpenCoach = useCallback(() => {
     console.log("[cookbook] bottom cta pressed - open coach");
