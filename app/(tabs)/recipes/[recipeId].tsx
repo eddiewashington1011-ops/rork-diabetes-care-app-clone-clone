@@ -93,6 +93,12 @@ export default function RecipeDetailScreen() {
     }
   }, [generateVideoPack, isGeneratingVideo, recipe]);
 
+  const onOpenVideoAgent = useCallback(() => {
+    if (!recipe) return;
+    console.log("[RecipeDetail] open video agent", { recipeId: recipe.id });
+    router.push({ pathname: "/(tabs)/recipes/video-agent", params: { recipeId: recipe.id } } as never);
+  }, [recipe, router]);
+
   const copyToClipboard = useCallback(async (text: string, index: number) => {
     await Clipboard.setStringAsync(text);
     setCopiedIndex(index);
@@ -298,22 +304,34 @@ export default function RecipeDetailScreen() {
           </View>
 
           {!recipe.shortVideoPack ? (
-            <TouchableOpacity
-              style={styles.generateVideoButton}
-              onPress={onGenerateVideoPack}
-              activeOpacity={0.9}
-              disabled={isGeneratingVideo || recipe.source === "virtual"}
-              testID="generate-video-pack"
-            >
-              {isGeneratingVideo ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Video size={18} color="#fff" />
-              )}
-              <Text style={styles.generateVideoButtonText}>
-                {isGeneratingVideo ? "Generating video pack..." : "Generate Video Content"}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.videoButtonsRow}>
+              <TouchableOpacity
+                style={styles.generateVideoButton}
+                onPress={onGenerateVideoPack}
+                activeOpacity={0.9}
+                disabled={isGeneratingVideo || recipe.source === "virtual"}
+                testID="generate-video-pack"
+              >
+                {isGeneratingVideo ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Video size={18} color="#fff" />
+                )}
+                <Text style={styles.generateVideoButtonText}>
+                  {isGeneratingVideo ? "Generating..." : "Quick Generate"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.videoAgentButton}
+                onPress={onOpenVideoAgent}
+                activeOpacity={0.9}
+                disabled={recipe.source === "virtual"}
+                testID="open-video-agent"
+              >
+                <Sparkles size={18} color={Colors.light.coral} />
+                <Text style={styles.videoAgentButtonText}>AI Creator</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View style={styles.videoPackContent}>
               {/* Video Script */}
@@ -801,18 +819,40 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 28,
   },
+  videoButtonsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
   generateVideoButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 8,
     backgroundColor: Colors.light.coral,
     paddingVertical: 14,
     borderRadius: 14,
   },
   generateVideoButtonText: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: "800" as const,
+  },
+  videoAgentButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.light.coralLight,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.coral,
+  },
+  videoAgentButtonText: {
+    color: Colors.light.coral,
+    fontSize: 14,
     fontWeight: "800" as const,
   },
   videoPackContent: {

@@ -28,6 +28,13 @@ export default function RecipesLayout() {
           title: "Recipe",
         }}
       />
+      <Stack.Screen
+        name="video-agent"
+        options={{
+          title: "Video Creator",
+          presentation: "modal",
+        }}
+      />
     </Stack>
   );
 }
