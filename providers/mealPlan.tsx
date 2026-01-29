@@ -198,7 +198,7 @@ async function agentPickSwap(input: {
 
   const res = await generateObject({
     messages: [
-      { role: "system", content: system },
+      { role: "assistant", content: system },
       { role: "user", content: user },
     ],
     schema: SwapSchema,
@@ -398,7 +398,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         setLastError(null);
         const res = await generateObject({
           messages: [
-            { role: "system", content: system },
+            { role: "assistant", content: system },
             { role: "user", content: user },
           ],
           schema: CoachPlanSchema,

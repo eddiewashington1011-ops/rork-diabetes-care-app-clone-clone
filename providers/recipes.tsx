@@ -181,7 +181,7 @@ function virtualStub(index: number): CoachRecipe {
   const sugarG = clampInt(0 + rng() * 7, 0, 18);
   const glycemicLoad = clampInt(Math.max(1, Math.round((carbsPerServing - fiberG) * 0.4)), 1, 30);
 
-  const skillLevel = (rng() < 0.6 ? "easy" : rng() < 0.9 ? "medium" : "advanced") as const;
+  const skillLevel: NonNullable<CoachRecipe["skillLevel"]> = rng() < 0.6 ? "easy" : rng() < 0.9 ? "medium" : "advanced";
 
   const tags = Array.from({ length: 4 })
     .map(() => pick(rng, tagPool))
@@ -281,7 +281,7 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
 
   const res = await generateObject({
     messages: [
-      { role: "system", content: system },
+      { role: "assistant", content: system },
       { role: "user", content: user },
     ],
     schema: AgentRecipeSchema,
@@ -529,7 +529,7 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
       ensureFullRecipe,
       deleteSavedRecipe,
     }),
-    [deleteSavedRecipe, ensureFullRecipe, getPage, getRecipeById, isHydrating, lastError, savedRecipes],
+    [createRecipeWithAgent, deleteSavedRecipe, ensureFullRecipe, getPage, getRecipeById, isHydrating, lastError, savedRecipes],
   );
 
   return value;
