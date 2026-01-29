@@ -121,7 +121,7 @@ export default function RecipesScreen() {
       setTimeout(() => {
         openRecipe(created.id);
       }, 50);
-    } catch (e) {
+    } catch {
       Alert.alert("Couldn’t generate recipe", "Please try again in a moment.");
     } finally {
       setIsGenerating(false);
@@ -163,9 +163,9 @@ export default function RecipesScreen() {
               <Sparkles size={16} color={Colors.light.sapphire} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.coachTitle}>Ask DiaCare Coach</Text>
+              <Text style={styles.coachTitle}>Ask Dia</Text>
               <Text style={styles.coachSubtitle} numberOfLines={1}>
-                Generate a meal for your goal, taste, and carbs
+                Tell me what you’re craving — I’ll make it diabetes-friendly
               </Text>
             </View>
             <View style={styles.coachPill}>
@@ -350,7 +350,7 @@ export default function RecipesScreen() {
           <Pressable style={styles.modalCard} onPress={() => {}} testID="cookbook-coach-modal">
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>DiaCare Coach</Text>
+                <Text style={styles.modalTitle}>Dia</Text>
                 <TouchableOpacity
                   onPress={() => setCoachOpen(false)}
                   style={styles.modalClose}

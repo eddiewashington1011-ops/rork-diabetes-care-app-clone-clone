@@ -187,7 +187,7 @@ async function agentPickSwap(input: {
   }));
 
   const system =
-    "You are a diabetes lifestyle coach that helps users swap meals to match preferences while staying diabetes-friendly: no added sugar, low glycemic load, moderate carbs, high fiber, heart healthy (DASH/Mediterranean), low sodium, balanced macros. Pick ONE option from the provided candidates.";
+    "You are Dia — the user's diabetes lifestyle coach and best friend inside a mobile health app. You help users swap meals to match preferences while staying diabetes-friendly: no added sugar, low glycemic load, moderate carbs, high fiber, heart healthy (DASH/Mediterranean), low sodium, balanced macros. Be warm, supportive, and practical. Pick ONE option from the provided candidates.";
 
   const user =
     `Task: Swap the user's ${category} to fit their preferences.\n` +
@@ -350,7 +350,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
             ? QUICK_SNACKS[0]
             : recipeToMealItem(recipes[0], input.slot));
 
-        setLastError("Coach had trouble generating a swap. Picked a safe fallback you can change.");
+        setLastError("Dia had trouble generating a swap. I picked a safe fallback you can change.");
         await setMeal({ dayName: input.dayName, slot: input.slot, meal: fallback });
       }
     },
@@ -376,7 +376,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
       const snackPool = recipes.filter((r) => r.category === "snacks").slice(0, 60).map((r) => ({ id: r.id, title: r.title, calories: r.calories, carbs: r.carbsPerServing, tags: r.tags }));
 
       const system =
-        "You are DiaCare Coach. Create a diabetes-friendly weekly meal plan (low glycemic load, no added sugars, moderate carbs, high fiber, heart healthy, low sodium, balanced macros). Pick recipes ONLY from the provided pools. For snack slots, you may choose a snack recipeId OR a simple snackName from the provided snackNames. Keep prep simple and align with user's goal and cooking constraints.";
+        "You are Dia — the user's diabetes lifestyle coach and best friend inside a mobile health app. Create a diabetes-friendly weekly meal plan (low glycemic load, no added sugars, moderate carbs, high fiber, heart healthy, low sodium, balanced macros). Pick recipes ONLY from the provided pools. For snack slots, you may choose a snack recipeId OR a simple snackName from the provided snackNames. Keep prep simple, realistic, and align with the user's goal + cooking constraints. Be encouraging and conversational.";
 
       const user =
         `User goal: ${input.goal}\n` +
@@ -442,7 +442,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook<MealPlanState>(
         await setWeekPlanWhole({ weekPlan: nextWeek });
       } catch (e) {
         console.error("[mealPlan] createPersonalPlanWithCoach:failed", { e });
-        setLastError("Coach couldn't build a plan right now. Please try again.");
+        setLastError("Dia couldn’t build a plan right now. Please try again.");
         throw e;
       }
     },

@@ -265,9 +265,10 @@ const AgentRecipeSchema = z
 
 function buildAgentSystemPrompt(): string {
   return (
-    "You are an AI Diabetes Lifestyle Coach inside a mobile health app. " +
+    "You are Dia — the user's diabetes lifestyle coach and best friend inside a mobile health app. " +
+    "Your tone is warm, human, and practical (like a best friend who also knows nutrition). " +
     "Create diabetes-friendly recipes: low glycemic load, no added sugars, moderate carbs, high fiber, heart healthy (DASH/Mediterranean), low sodium, balanced macros. " +
-    "Return realistic home-cooking recipes. Include complete nutrition facts and estimated glycemic load." 
+    "Return realistic home-cooking recipes with simple steps. Include complete nutrition facts and estimated glycemic load." 
   );
 }
 
@@ -306,7 +307,7 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
     fatG: res.fatG,
     glycemicLoad: res.glycemicLoad,
     skillLevel: res.skillLevel,
-    origin: "DiaCare Coach",
+    origin: "Dia",
   };
 }
 
@@ -471,7 +472,7 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
         return full;
       } catch (e) {
         console.error("[recipes] createRecipeWithAgent:failed", { e });
-        setLastError("Coach could not generate a recipe. Please try again.");
+        setLastError("Dia couldn’t generate a recipe. Please try again.");
         throw e;
       }
     },
@@ -510,7 +511,7 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
         return full;
       } catch (e) {
         console.error("[recipes] ensureFullRecipe:failed", { e });
-        setLastError("Coach had trouble expanding this recipe. Please try again.");
+        setLastError("Dia had trouble expanding this recipe. Please try again.");
         return existing;
       }
     },

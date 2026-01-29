@@ -130,7 +130,7 @@ async function scheduleReminderNotification(input: { title: string; time: string
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: input.title,
-        body: "Tap to open DiaCare and check in.",
+        body: "Tap to open Dia Care and check in.",
         ...(Platform.OS === "android" ? { channelId: "diacare-reminders" } : {}),
       },
       trigger: {
@@ -220,7 +220,7 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
     (async () => {
       try {
         await Notifications.setNotificationChannelAsync("diacare-reminders", {
-          name: "DiaCare Reminders",
+          name: "Dia Care Reminders",
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 100, 250],
           lightColor: "#14B8A6",

@@ -271,7 +271,7 @@ export default function MealPlanScreen() {
           <View style={styles.sectionActions}>
             <TouchableOpacity style={[styles.sectionActionBtn, styles.sectionActionPrimary]} onPress={openCoach} activeOpacity={0.85} testID="meal-plan-open-coach">
               <Wand2 size={16} color="#fff" />
-              <Text style={[styles.sectionActionText, styles.sectionActionTextPrimary]}>Coach interview</Text>
+              <Text style={[styles.sectionActionText, styles.sectionActionTextPrimary]}>Interview with Dia</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sectionActionBtn} onPress={onReset} activeOpacity={0.85} testID="meal-plan-reset">
@@ -330,8 +330,8 @@ export default function MealPlanScreen() {
             </View>
 
             <View style={styles.agentBox}>
-              <Text style={styles.agentTitle}>Coach swap</Text>
-              <Text style={styles.agentHint}>Tell the Coach what you want (e.g. “vegetarian”, “quick 10 min”, “higher protein”, “lower carbs”).</Text>
+              <Text style={styles.agentTitle}>Swap with Dia</Text>
+              <Text style={styles.agentHint}>Tell Dia what you want (e.g. “vegetarian”, “quick 10 min”, “higher protein”, “lower carbs”).</Text>
               <TextInput
                 value={preferencesText}
                 onChangeText={setPreferencesText}
@@ -388,7 +388,7 @@ export default function MealPlanScreen() {
           <View style={styles.coachModalCard}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>DiaCare Coach</Text>
+                <Text style={styles.modalTitle}>Dia</Text>
                 <Text style={styles.modalSubtitle}>Answer a few questions — I’ll build your weekly plan.</Text>
               </View>
               <TouchableOpacity style={styles.modalClose} onPress={closeCoach} activeOpacity={0.85} testID="meal-plan-coach-close">
