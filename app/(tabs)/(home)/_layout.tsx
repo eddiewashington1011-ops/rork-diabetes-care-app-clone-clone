@@ -18,7 +18,7 @@ export default function HomeLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: "DiaCare",
+          title: "Dia Care",
           headerLargeTitle: true,
         }}
       />
