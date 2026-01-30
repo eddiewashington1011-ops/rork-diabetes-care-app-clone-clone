@@ -23,6 +23,9 @@ import {
   Calendar,
   Zap,
   Heart,
+  FileText,
+  Stethoscope,
+  Smartphone,
 } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
@@ -31,6 +34,7 @@ import { useOnboarding } from "@/providers/onboarding";
 import { useAnalytics } from "@/providers/analytics";
 import { useEngagement } from "@/providers/engagement";
 import { AnimatedPressable, FadeIn } from "@/components/AnimatedPressable";
+import { useHealthExport } from "@/providers/healthExport";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -39,6 +43,7 @@ export default function SettingsScreen() {
   const { resetOnboarding, diabetesType } = useOnboarding();
   const { getUserStats, trackEvent } = useAnalytics();
   const { notificationsStatus, requestNotificationsPermission, entries, reminders } = useEngagement();
+  const { appleHealthStatus, requestAppleHealthAccess } = useHealthExport();
 
   const stats = useMemo(() => getUserStats(), [getUserStats]);
 
@@ -75,6 +80,22 @@ export default function SettingsScreen() {
       trackEvent("settings_notifications_requested", { granted });
     }
   }, [notificationsStatus, requestNotificationsPermission, trackEvent]);
+
+  const handleHealthReports = useCallback(() => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    trackEvent("settings_health_reports_tapped");
+    router.push("/(tabs)/(home)/health-reports");
+  }, [router, trackEvent]);
+
+  const handleAppleHealth = useCallback(async () => {
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    trackEvent("settings_apple_health_tapped");
+    await requestAppleHealthAccess();
+  }, [requestAppleHealthAccess, trackEvent]);
 
   const diabetesTypeLabel = useMemo(() => {
     switch (diabetesType) {
@@ -201,6 +222,90 @@ export default function SettingsScreen() {
 
         <FadeIn delay={200}>
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Health & Data</Text>
+            <View style={styles.card}>
+              <TouchableOpacity
+                style={styles.row}
+                onPress={handleHealthReports}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: Colors.light.tintLight }]}>
+                  <FileText size={18} color={Colors.light.tint} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Health Reports</Text>
+                  <Text style={styles.rowSubtitle}>Generate & share PDF reports</Text>
+                </View>
+                <ChevronRight size={18} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
+              <TouchableOpacity
+                style={styles.row}
+                onPress={handleHealthReports}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: Colors.light.sapphireLight }]}>
+                  <Stethoscope size={18} color={Colors.light.sapphire} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Share with Doctor</Text>
+                  <Text style={styles.rowSubtitle}>Export data for appointments</Text>
+                </View>
+                <ChevronRight size={18} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+
+              {Platform.OS === "ios" && (
+                <>
+                  <View style={styles.divider} />
+                  <TouchableOpacity
+                    style={styles.row}
+                    onPress={handleAppleHealth}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.rowIcon, { backgroundColor: "#FF2D55" + "20" }]}>
+                      <Heart size={18} color="#FF2D55" />
+                    </View>
+                    <View style={styles.rowContent}>
+                      <Text style={styles.rowTitle}>Apple Health</Text>
+                      <Text style={styles.rowSubtitle}>
+                        {appleHealthStatus === "authorized" ? "Connected" : "Sync glucose & activity"}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statusPill,
+                      appleHealthStatus === "authorized" && styles.statusPillActive
+                    ]}>
+                      <Text style={[
+                        styles.statusPillText,
+                        appleHealthStatus === "authorized" && styles.statusPillTextActive
+                      ]}>
+                        {appleHealthStatus === "authorized" ? "On" : "Off"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              <View style={styles.divider} />
+
+              <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+                <View style={[styles.rowIcon, { backgroundColor: Colors.light.successLight }]}>
+                  <Smartphone size={18} color={Colors.light.success} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Widget Settings</Text>
+                  <Text style={styles.rowSubtitle}>Home screen glucose widget</Text>
+                </View>
+                <ChevronRight size={18} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </FadeIn>
+
+        <FadeIn delay={250}>
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>App</Text>
             <View style={styles.card}>
               <TouchableOpacity style={styles.row} activeOpacity={0.7}>
@@ -244,7 +349,7 @@ export default function SettingsScreen() {
           </View>
         </FadeIn>
 
-        <FadeIn delay={250}>
+        <FadeIn delay={300}>
           <View style={styles.section}>
             <View style={styles.appInfo}>
               <View style={styles.appIcon}>
@@ -463,5 +568,25 @@ const styles = StyleSheet.create({
   madeWithText: {
     fontSize: 13,
     color: Colors.light.textSecondary,
+  },
+  statusPill: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  statusPillActive: {
+    backgroundColor: Colors.light.successLight,
+    borderColor: Colors.light.successLight,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: Colors.light.textSecondary,
+  },
+  statusPillTextActive: {
+    color: Colors.light.success,
   },
 });

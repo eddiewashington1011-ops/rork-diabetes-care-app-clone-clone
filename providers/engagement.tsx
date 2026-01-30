@@ -8,6 +8,14 @@ import { trpc } from "@/lib/trpc";
 
 type GlucoseContext = "fasting" | "beforeMeal" | "afterMeal" | "bedtime" | "other";
 
+type CarbEntry = {
+  id: string;
+  carbsG: number;
+  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  description: string;
+  createdAt: string;
+};
+
 type GlucoseEntry = {
   id: string;
   valueMgDl: number;
@@ -35,12 +43,18 @@ type CheckinsByDate = Record<string, Partial<Record<HabitKey, boolean>>>;
 
 type EngagementState = {
   entries: GlucoseEntry[];
+  carbEntries: CarbEntry[];
   reminders: Reminder[];
   checkinsByDate: CheckinsByDate;
   notificationsStatus: "unknown" | "granted" | "denied";
 
   addEntry: (input: { valueMgDl: number; context: GlucoseContext; note?: string; createdAt?: Date }) => void;
   deleteEntry: (id: string) => void;
+  
+  addCarbEntry: (input: { carbsG: number; mealType: CarbEntry["mealType"]; description?: string }) => void;
+  deleteCarbEntry: (id: string) => void;
+  getTodayCarbs: () => number;
+  getWeeklyAvgCarbs: () => number;
 
   upsertReminder: (input: { id?: string; title: string; type: ReminderType; time: string; enabled: boolean }) => Promise<void>;
   toggleReminder: (id: string, enabled: boolean) => Promise<void>;
@@ -58,6 +72,7 @@ type EngagementState = {
 
 const STORAGE_KEYS = {
   entries: "diacare:glucose_entries:v1",
+  carbEntries: "diacare:carb_entries:v1",
   reminders: "diacare:reminders:v1",
   checkins: "diacare:checkins:v1",
   clientId: "diacare:client_id:v1",
@@ -201,6 +216,7 @@ async function scheduleSnoozeNotification(input: { title: string; snoozedUntil: 
 
 export const [EngagementProvider, useEngagement] = createContextHook<EngagementState>(() => {
   const [entries, setEntries] = useState<GlucoseEntry[]>([]);
+  const [carbEntries, setCarbEntries] = useState<CarbEntry[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [checkinsByDate, setCheckinsByDate] = useState<CheckinsByDate>({});
   const [notificationsStatus, setNotificationsStatus] = useState<EngagementState["notificationsStatus"]>("unknown");
@@ -247,8 +263,9 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
     let mounted = true;
     (async () => {
       console.log("[engagement] Hydrating state...");
-      const [rawEntries, rawReminders, rawCheckins, rawClientId, rawSyncUpdatedAtMs] = await Promise.all([
+      const [rawEntries, rawCarbEntries, rawReminders, rawCheckins, rawClientId, rawSyncUpdatedAtMs] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.entries),
+        AsyncStorage.getItem(STORAGE_KEYS.carbEntries),
         AsyncStorage.getItem(STORAGE_KEYS.reminders),
         AsyncStorage.getItem(STORAGE_KEYS.checkins),
         AsyncStorage.getItem(STORAGE_KEYS.clientId),
@@ -258,6 +275,7 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
       if (!mounted) return;
 
       const nextEntries = safeParseJson<GlucoseEntry[]>(rawEntries, []);
+      const nextCarbEntries = safeParseJson<CarbEntry[]>(rawCarbEntries, []);
       const parsedReminders = safeParseJson<Reminder[]>(rawReminders, []);
       const nextReminders: Reminder[] = parsedReminders.map(normalizeReminder);
       const nextCheckins = safeParseJson<CheckinsByDate>(rawCheckins, {});
@@ -274,6 +292,7 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
       }
 
       setEntries(nextEntries);
+      setCarbEntries(nextCarbEntries);
       setReminders(nextReminders);
       setCheckinsByDate(nextCheckins);
       setClientId(nextClientId);
@@ -282,6 +301,7 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
       hydratedRef.current = true;
       console.log("[engagement] Hydrated", {
         entries: nextEntries.length,
+        carbEntries: nextCarbEntries.length,
         reminders: nextReminders.length,
         checkinsDates: Object.keys(nextCheckins).length,
         clientId: nextClientId,
@@ -310,6 +330,13 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
       console.error("[engagement] Failed to persist entries", e),
     );
   }, [entries]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    AsyncStorage.setItem(STORAGE_KEYS.carbEntries, JSON.stringify(carbEntries)).catch((e) =>
+      console.error("[engagement] Failed to persist carb entries", e),
+    );
+  }, [carbEntries]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
@@ -797,14 +824,70 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
     return entries.length > 0 ? entries[0] : null;
   }, [entries]);
 
+  const addCarbEntry = useCallback((input: { carbsG: number; mealType: CarbEntry["mealType"]; description?: string }) => {
+    const entry: CarbEntry = {
+      id: uid("carb"),
+      carbsG: input.carbsG,
+      mealType: input.mealType,
+      description: input.description ?? "",
+      createdAt: new Date().toISOString(),
+    };
+    console.log("[engagement] addCarbEntry", entry);
+    bumpSyncUpdatedAt();
+    setCarbEntries((prev) => [entry, ...prev].slice(0, 500));
+  }, [bumpSyncUpdatedAt]);
+
+  const deleteCarbEntry = useCallback((id: string) => {
+    console.log("[engagement] deleteCarbEntry", { id });
+    bumpSyncUpdatedAt();
+    setCarbEntries((prev) => prev.filter((e) => e.id !== id));
+  }, [bumpSyncUpdatedAt]);
+
+  const getTodayCarbs = useCallback((): number => {
+    const todayKey = getTodayKey(new Date());
+    const todayEntries = carbEntries.filter((e) => {
+      const entryKey = getTodayKey(new Date(e.createdAt));
+      return entryKey === todayKey;
+    });
+    return todayEntries.reduce((sum, e) => sum + e.carbsG, 0);
+  }, [carbEntries]);
+
+  const getWeeklyAvgCarbs = useCallback((): number => {
+    const now = new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(now.getDate() - 7);
+    
+    const weekEntries = carbEntries.filter((e) => {
+      const entryDate = new Date(e.createdAt);
+      return entryDate >= weekAgo;
+    });
+    
+    if (weekEntries.length === 0) return 0;
+    
+    const dailyTotals: Record<string, number> = {};
+    weekEntries.forEach((e) => {
+      const key = getTodayKey(new Date(e.createdAt));
+      dailyTotals[key] = (dailyTotals[key] ?? 0) + e.carbsG;
+    });
+    
+    const days = Object.keys(dailyTotals).length;
+    const total = Object.values(dailyTotals).reduce((a, b) => a + b, 0);
+    return days > 0 ? Math.round(total / days) : 0;
+  }, [carbEntries]);
+
   const value: EngagementState = useMemo(
     () => ({
       entries,
+      carbEntries,
       reminders,
       checkinsByDate,
       notificationsStatus,
       addEntry,
       deleteEntry,
+      addCarbEntry,
+      deleteCarbEntry,
+      getTodayCarbs,
+      getWeeklyAvgCarbs,
       upsertReminder,
       toggleReminder,
       snoozeReminder,
@@ -818,11 +901,16 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
     }),
     [
       entries,
+      carbEntries,
       reminders,
       checkinsByDate,
       notificationsStatus,
       addEntry,
       deleteEntry,
+      addCarbEntry,
+      deleteCarbEntry,
+      getTodayCarbs,
+      getWeeklyAvgCarbs,
       upsertReminder,
       toggleReminder,
       snoozeReminder,
@@ -839,4 +927,4 @@ export const [EngagementProvider, useEngagement] = createContextHook<EngagementS
   return value;
 });
 
-export type { GlucoseEntry, GlucoseContext, Reminder, ReminderType, HabitKey };
+export type { GlucoseEntry, GlucoseContext, CarbEntry, Reminder, ReminderType, HabitKey };

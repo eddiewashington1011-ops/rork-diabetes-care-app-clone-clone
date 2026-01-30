@@ -14,6 +14,7 @@ import { WorkoutPlanProvider } from "@/providers/workoutPlan";
 import { OnboardingProvider, useOnboarding } from "@/providers/onboarding";
 import { AnalyticsProvider, useAnalytics } from "@/providers/analytics";
 import { SubscriptionProvider } from "@/providers/subscription";
+import { HealthExportProvider } from "@/providers/healthExport";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 import Colors from "@/constants/colors";
@@ -102,9 +103,11 @@ export default function RootLayout() {
                         <GroceryListProvider>
                           <RecipesProvider>
                             <WorkoutPlanProvider>
-                              <OnboardingGate>
-                                <RootLayoutNav />
-                              </OnboardingGate>
+                              <HealthExportProvider>
+                                <OnboardingGate>
+                                  <RootLayoutNav />
+                                </OnboardingGate>
+                              </HealthExportProvider>
                             </WorkoutPlanProvider>
                           </RecipesProvider>
                         </GroceryListProvider>
