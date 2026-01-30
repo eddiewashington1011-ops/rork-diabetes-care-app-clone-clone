@@ -5,6 +5,7 @@ import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { EngagementProvider } from "@/providers/engagement";
+import { CGMProvider } from "@/providers/cgm";
 import { MealPlanProvider } from "@/providers/mealPlan";
 import { GroceryListProvider } from "@/providers/groceryList";
 import { RecipesProvider } from "@/providers/recipes";
@@ -35,13 +36,15 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <AppErrorBoundary>
             <EngagementProvider>
-              <MealPlanProvider>
-                <GroceryListProvider>
-                  <RecipesProvider>
-                    <RootLayoutNav />
-                  </RecipesProvider>
-                </GroceryListProvider>
-              </MealPlanProvider>
+              <CGMProvider>
+                <MealPlanProvider>
+                  <GroceryListProvider>
+                    <RecipesProvider>
+                      <RootLayoutNav />
+                    </RecipesProvider>
+                  </GroceryListProvider>
+                </MealPlanProvider>
+              </CGMProvider>
             </EngagementProvider>
           </AppErrorBoundary>
         </GestureHandlerRootView>

@@ -26,12 +26,17 @@ import {
   Sparkles,
   AlarmClock,
   Plus,
+  Bluetooth,
+  BluetoothOff,
+  Target,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { sugarTips, quickStats } from "@/mocks/sugarTips";
 import { recipes } from "@/mocks/recipes";
 import { exercises } from "@/mocks/exercises";
 import { useEngagement } from "@/providers/engagement";
+import { useCGM, getTrendArrow, getTrendLabel } from "@/providers/cgm";
+import { GlucoseGraph } from "@/components/GlucoseGraph";
 
 function parseTimeToHourMinute(time: string): { hour: number; minute: number } | null {
   const [hhRaw, mmRaw] = time.split(":");
@@ -84,6 +89,18 @@ export default function HomeScreen() {
   const router = useRouter();
   const { getLatestGlucoseEntry, getTodayCheckins, reminders, getCurrentStreak, snoozeReminder, clearSnooze, addEntry, entries } =
     useEngagement();
+  
+  const {
+    currentReading,
+    readings: cgmReadings,
+    connectionStatus,
+    device,
+    settings,
+    getTimeInRange,
+  } = useCGM();
+  
+  const isCGMConnected = connectionStatus === "connected";
+  const hasCGMData = cgmReadings.length > 0;
 
   const [quickCustomText, setQuickCustomText] = useState<string>("");
 
@@ -370,14 +387,94 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
 
+            {isCGMConnected && hasCGMData && (
+              <TouchableOpacity
+                style={styles.cgmWidget}
+                onPress={() => router.push("/(tabs)/(home)/glucose")}
+                activeOpacity={0.92}
+                testID="home-cgm-widget"
+              >
+                <View style={styles.cgmWidgetHeader}>
+                  <View style={styles.cgmWidgetTitleRow}>
+                    <Bluetooth size={14} color={Colors.light.success} />
+                    <Text style={styles.cgmWidgetTitle}>{device?.name ?? "CGM"}</Text>
+                  </View>
+                  <View style={[styles.pill, { backgroundColor: Colors.light.successLight, borderColor: Colors.light.successLight }]}>
+                    <Text style={[styles.pillText, { color: Colors.light.success }]}>Live</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.cgmWidgetMain}>
+                  <View style={styles.cgmWidgetValue}>
+                    <Text style={[
+                      styles.cgmGlucoseValue,
+                      currentReading && currentReading.value < settings.lowThreshold && { color: Colors.light.gold },
+                      currentReading && currentReading.value > settings.highThreshold && { color: Colors.light.danger },
+                    ]}>
+                      {currentReading?.value ?? "—"}
+                    </Text>
+                    <View style={styles.cgmUnitTrend}>
+                      <Text style={styles.cgmUnit}>mg/dL</Text>
+                      <Text style={styles.cgmTrendArrow}>
+                        {currentReading ? getTrendArrow(currentReading.trend) : ""}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.cgmWidgetStats}>
+                    <View style={styles.cgmStatItem}>
+                      <Target size={12} color={Colors.light.success} />
+                      <Text style={styles.cgmStatText}>{getTimeInRange(24).inRange}% TIR</Text>
+                    </View>
+                    <Text style={styles.cgmTrendLabel}>
+                      {currentReading ? getTrendLabel(currentReading.trend) : ""}
+                    </Text>
+                  </View>
+                </View>
+                
+                <GlucoseGraph
+                  readings={cgmReadings}
+                  hours={3}
+                  height={80}
+                  showLabels={false}
+                  compact={true}
+                  lowThreshold={settings.lowThreshold}
+                  highThreshold={settings.highThreshold}
+                />
+              </TouchableOpacity>
+            )}
+
             <View style={styles.todayRow}>
               <View style={styles.todayHalf}>
                 <View style={styles.quickLogCard} testID="home-quick-log">
                   <View style={styles.quickLogTop}>
-                    <View style={[styles.engagementIcon, { backgroundColor: Colors.light.sapphireLight }]}>
-                      <Droplets size={18} color={Colors.light.sapphire} />
+                    <View style={[styles.engagementIcon, { backgroundColor: isCGMConnected ? Colors.light.successLight : Colors.light.sapphireLight }]}>
+                      {isCGMConnected ? (
+                        <Bluetooth size={18} color={Colors.light.success} />
+                      ) : (
+                        <BluetoothOff size={18} color={Colors.light.sapphire} />
+                      )}
                     </View>
-                    {latest ? (
+                    {isCGMConnected && currentReading ? (
+                      <View
+                        style={[
+                          styles.pill,
+                          { 
+                            backgroundColor: currentReading.value < settings.lowThreshold ? Colors.light.goldLight :
+                              currentReading.value > settings.highThreshold ? Colors.light.dangerLight : Colors.light.successLight,
+                            borderColor: currentReading.value < settings.lowThreshold ? Colors.light.goldLight :
+                              currentReading.value > settings.highThreshold ? Colors.light.dangerLight : Colors.light.successLight,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.pillText, { 
+                          color: currentReading.value < settings.lowThreshold ? Colors.light.gold :
+                            currentReading.value > settings.highThreshold ? Colors.light.danger : Colors.light.success
+                        }]}>
+                          {currentReading.value < settings.lowThreshold ? "Low" :
+                           currentReading.value > settings.highThreshold ? "High" : "In Range"}
+                        </Text>
+                      </View>
+                    ) : latest ? (
                       <View
                         style={[
                           styles.pill,
@@ -395,44 +492,52 @@ export default function HomeScreen() {
                     )}
                   </View>
 
-                  <Text style={styles.engagementCardTitle}>Quick log</Text>
+                  <Text style={styles.engagementCardTitle}>
+                    {isCGMConnected ? "CGM Monitor" : "Quick log"}
+                  </Text>
                   <Text style={styles.quickLogHint}>
-                    {latest ? `Latest ${latest.valueMgDl} • ${formatTime(latest.createdAt)}` : "Tap a preset"}
+                    {isCGMConnected && currentReading 
+                      ? `${currentReading.value} ${getTrendArrow(currentReading.trend)} • ${formatTime(currentReading.timestamp)}`
+                      : latest ? `Latest ${latest.valueMgDl} • ${formatTime(latest.createdAt)}` : "Tap to connect CGM"}
                   </Text>
 
-                  <View style={styles.quickPillsRow}>
-                    {[80, 100, 120].map((v) => (
-                      <TouchableOpacity
-                        key={v}
-                        style={styles.quickPill}
-                        onPress={() => onQuickPreset(v)}
-                        activeOpacity={0.88}
-                        testID={`home-quick-log-${v}`}
-                      >
-                        <Text style={styles.quickPillText}>{v}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  {!isCGMConnected && (
+                    <View style={styles.quickPillsRow}>
+                      {[80, 100, 120].map((v) => (
+                        <TouchableOpacity
+                          key={v}
+                          style={styles.quickPill}
+                          onPress={() => onQuickPreset(v)}
+                          activeOpacity={0.88}
+                          testID={`home-quick-log-${v}`}
+                        >
+                          <Text style={styles.quickPillText}>{v}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
 
-                  <View style={styles.quickCustomRow}>
-                    <TextInput
-                      value={quickCustomText}
-                      onChangeText={setQuickCustomText}
-                      keyboardType="numeric"
-                      placeholder="Custom"
-                      placeholderTextColor={Colors.light.textSecondary}
-                      style={styles.quickCustomInput}
-                      testID="home-quick-log-custom-input"
-                    />
-                    <TouchableOpacity
-                      style={styles.quickAddBtn}
-                      onPress={onQuickCustom}
-                      activeOpacity={0.9}
-                      testID="home-quick-log-custom-add"
-                    >
-                      <Plus size={14} color={Colors.light.text} />
-                    </TouchableOpacity>
-                  </View>
+                  {!isCGMConnected && (
+                    <View style={styles.quickCustomRow}>
+                      <TextInput
+                        value={quickCustomText}
+                        onChangeText={setQuickCustomText}
+                        keyboardType="numeric"
+                        placeholder="Custom"
+                        placeholderTextColor={Colors.light.textSecondary}
+                        style={styles.quickCustomInput}
+                        testID="home-quick-log-custom-input"
+                      />
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={onQuickCustom}
+                        activeOpacity={0.9}
+                        testID="home-quick-log-custom-add"
+                      >
+                        <Plus size={14} color={Colors.light.text} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
 
                   <TouchableOpacity
                     style={styles.linkRow}
@@ -440,7 +545,9 @@ export default function HomeScreen() {
                     activeOpacity={0.9}
                     testID="home-quick-log-open-full"
                   >
-                    <Text style={styles.linkText}>Open full log</Text>
+                    <Text style={styles.linkText}>
+                      {isCGMConnected ? "View glucose trends" : "Open full log"}
+                    </Text>
                     <ChevronRight size={16} color={Colors.light.textSecondary} />
                   </TouchableOpacity>
                 </View>
@@ -653,8 +760,10 @@ export default function HomeScreen() {
       </ScrollView>
 
       <BottomCTA
-        title="Log glucose"
-        subtitle={latest ? `Last: ${latest.valueMgDl} mg/dL` : "Add your first reading"}
+        title={isCGMConnected ? "CGM Active" : "Log glucose"}
+        subtitle={isCGMConnected && currentReading 
+          ? `${currentReading.value} mg/dL ${getTrendArrow(currentReading.trend)} • ${device?.name}`
+          : latest ? `Last: ${latest.valueMgDl} mg/dL` : "Connect CGM or add reading"}
         onPress={onLogGlucose}
         testID="home-bottom-cta"
       />
@@ -1275,5 +1384,79 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 140,
+  },
+  cgmWidget: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    marginBottom: 10,
+  },
+  cgmWidgetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  cgmWidgetTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  cgmWidgetTitle: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.light.textSecondary,
+  },
+  cgmWidgetMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  cgmWidgetValue: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  cgmGlucoseValue: {
+    fontSize: 42,
+    fontWeight: "900" as const,
+    color: Colors.light.success,
+    lineHeight: 46,
+  },
+  cgmUnitTrend: {
+    paddingBottom: 6,
+  },
+  cgmUnit: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: Colors.light.textSecondary,
+  },
+  cgmTrendArrow: {
+    fontSize: 16,
+    fontWeight: "900" as const,
+    color: Colors.light.text,
+    marginTop: 2,
+  },
+  cgmWidgetStats: {
+    alignItems: "flex-end",
+  },
+  cgmStatItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  cgmStatText: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.light.success,
+  },
+  cgmTrendLabel: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+    marginTop: 4,
   },
 });
