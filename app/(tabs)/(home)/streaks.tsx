@@ -111,64 +111,37 @@ export default function StreaksScreen() {
       </LinearGradient>
 
       <View style={styles.grid}>
-        <View style={styles.gridRow}>
-          {habits.slice(0, 2).map((h) => {
-            const done = Boolean(today?.[h.key]);
-            const streak = getCurrentStreak(h.key);
+        {habits.map((h) => {
+          const done = Boolean(today?.[h.key]);
+          const streak = getCurrentStreak(h.key);
 
-            return (
-              <TouchableOpacity
-                key={h.key}
-                style={[styles.habitCard, { borderColor: h.light }, done && { backgroundColor: h.light }]}
-                onPress={() => onToggle(h.key)}
-                activeOpacity={0.9}
-                testID={`habit-${h.key}`}
-              >
+          return (
+            <TouchableOpacity
+              key={h.key}
+              style={[styles.habitCard, { borderColor: h.light }, done && { backgroundColor: h.light }]}
+              onPress={() => onToggle(h.key)}
+              activeOpacity={0.9}
+              testID={`habit-${h.key}`}
+            >
+              <View style={styles.habitRow}>
                 <View style={[styles.habitIcon, { backgroundColor: h.color }]}>{h.icon}</View>
-                <Text style={styles.habitTitle}>{h.title}</Text>
-                <Text style={styles.habitSub}>{h.subtitle}</Text>
-                <View style={styles.habitBottom}>
+                <View style={styles.habitInfo}>
+                  <Text style={styles.habitTitle}>{h.title}</Text>
+                  <Text style={styles.habitSub}>{h.subtitle}</Text>
+                </View>
+                <View style={styles.habitRight}>
                   <View style={styles.streakInfo}>
                     <Text style={styles.streakNum}>{streak}</Text>
-                    <Text style={styles.streakLabel}>day streak</Text>
+                    <Text style={styles.streakLabel}>day</Text>
                   </View>
                   <Text style={[styles.donePill, done ? styles.donePillOn : styles.donePillOff]}>
                     {done ? "Done" : "Tap"}
                   </Text>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <View style={styles.gridRow}>
-          {[habits[3], habits[2]].map((h) => {
-            const done = Boolean(today?.[h.key]);
-            const streak = getCurrentStreak(h.key);
-
-            return (
-              <TouchableOpacity
-                key={h.key}
-                style={[styles.habitCard, { borderColor: h.light }, done && { backgroundColor: h.light }]}
-                onPress={() => onToggle(h.key)}
-                activeOpacity={0.9}
-                testID={`habit-${h.key}`}
-              >
-                <View style={[styles.habitIcon, { backgroundColor: h.color }]}>{h.icon}</View>
-                <Text style={styles.habitTitle}>{h.title}</Text>
-                <Text style={styles.habitSub}>{h.subtitle}</Text>
-                <View style={styles.habitBottom}>
-                  <View style={styles.streakInfo}>
-                    <Text style={styles.streakNum}>{streak}</Text>
-                    <Text style={styles.streakLabel}>day streak</Text>
-                  </View>
-                  <Text style={[styles.donePill, done ? styles.donePillOn : styles.donePillOff]}>
-                    {done ? "Done" : "Tap"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <View style={styles.bottomSpacer} />
@@ -243,16 +216,14 @@ const styles = StyleSheet.create({
   grid: {
     gap: 10,
   },
-  gridRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
   habitCard: {
-    flex: 1,
     backgroundColor: Colors.light.surface,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
+  },
+  habitRow: {
+    flexDirection: "row",
     alignItems: "center",
   },
   habitIcon: {
@@ -261,40 +232,39 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+  },
+  habitInfo: {
+    flex: 1,
+    marginLeft: 12,
   },
   habitTitle: {
-    fontSize: 14,
-    fontWeight: "900" as const,
+    fontSize: 15,
+    fontWeight: "800" as const,
     color: Colors.light.text,
-    textAlign: "center" as const,
   },
   habitSub: {
-    marginTop: 4,
-    fontSize: 11,
-    fontWeight: "600" as const,
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "500" as const,
     color: Colors.light.textSecondary,
-    textAlign: "center" as const,
-    lineHeight: 15,
   },
-  habitBottom: {
-    marginTop: 12,
+  habitRight: {
     alignItems: "center",
-    width: "100%" as const,
+    marginLeft: 12,
   },
   streakInfo: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 4,
+    gap: 3,
   },
   streakNum: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900" as const,
     color: Colors.light.text,
   },
   streakLabel: {
-    fontSize: 11,
-    fontWeight: "800" as const,
+    fontSize: 10,
+    fontWeight: "700" as const,
     color: Colors.light.textSecondary,
   },
   donePill: {
