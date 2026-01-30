@@ -245,7 +245,7 @@ function asCoachRecipeFromBase(r: Recipe): CoachRecipe {
 const AgentRecipeSchema = z
   .object({
     title: z.string().min(4).max(80),
-    description: z.string().min(10).max(220),
+    description: z.string().min(10).max(500),
     category: z.enum(["breakfast", "lunch", "dinner", "snacks", "desserts", "teas"]),
     prepTime: z.number().int().min(0).max(90),
     cookTime: z.number().int().min(0).max(180),
