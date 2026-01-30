@@ -290,13 +290,51 @@ export default function SettingsScreen() {
 
               <View style={styles.divider} />
 
-              <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => router.push("/(tabs)/(home)/widget-settings")}
+                activeOpacity={0.7}
+              >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.light.successLight }]}>
                   <Smartphone size={18} color={Colors.light.success} />
                 </View>
                 <View style={styles.rowContent}>
                   <Text style={styles.rowTitle}>Widget Settings</Text>
                   <Text style={styles.rowSubtitle}>Home screen glucose widget</Text>
+                </View>
+                <ChevronRight size={18} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => router.push("/(tabs)/(home)/doctors")}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: Colors.light.coralLight }]}>
+                  <Stethoscope size={18} color={Colors.light.coral} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>My Doctors</Text>
+                  <Text style={styles.rowSubtitle}>Manage healthcare team</Text>
+                </View>
+                <ChevronRight size={18} color={Colors.light.textSecondary} />
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => router.push("/(tabs)/(home)/food-log")}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: Colors.light.accentLight }]}>
+                  <Activity size={18} color={Colors.light.accent} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowTitle}>Food Log</Text>
+                  <Text style={styles.rowSubtitle}>Track meals and carbs</Text>
                 </View>
                 <ChevronRight size={18} color={Colors.light.textSecondary} />
               </TouchableOpacity>

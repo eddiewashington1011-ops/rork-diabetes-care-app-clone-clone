@@ -50,6 +50,34 @@ export default function HomeLayout() {
           presentation: "card",
         }}
       />
+      <Stack.Screen
+        name="health-reports"
+        options={{
+          title: "Health Reports",
+          presentation: "card",
+        }}
+      />
+      <Stack.Screen
+        name="food-log"
+        options={{
+          title: "Food Log",
+          presentation: "card",
+        }}
+      />
+      <Stack.Screen
+        name="doctors"
+        options={{
+          title: "My Doctors",
+          presentation: "card",
+        }}
+      />
+      <Stack.Screen
+        name="widget-settings"
+        options={{
+          title: "Widget Settings",
+          presentation: "card",
+        }}
+      />
     </Stack>
   );
 }

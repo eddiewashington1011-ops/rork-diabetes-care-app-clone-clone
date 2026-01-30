@@ -29,6 +29,9 @@ import {
   Bluetooth,
   BluetoothOff,
   Target,
+  FileText,
+  Stethoscope,
+  Apple,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { sugarTips, quickStats } from "@/mocks/sugarTips";
@@ -631,6 +634,47 @@ export default function HomeScreen() {
               <Text style={styles.engagementCardTitle}>Reminders</Text>
               <Text style={styles.engagementCardSub}>Keep your routine on autopilot</Text>
             </TouchableOpacity>
+
+            <View style={styles.quickActionsRow}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => router.push("/(tabs)/(home)/food-log")}
+                activeOpacity={0.92}
+                testID="home-open-food-log"
+              >
+                <View style={[styles.engagementIcon, { backgroundColor: Colors.light.successLight }]}>
+                  <Apple size={18} color={Colors.light.success} />
+                </View>
+                <Text style={styles.quickActionTitle}>Food Log</Text>
+                <Text style={styles.quickActionSub}>Track carbs</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => router.push("/(tabs)/(home)/doctors")}
+                activeOpacity={0.92}
+                testID="home-open-doctors"
+              >
+                <View style={[styles.engagementIcon, { backgroundColor: Colors.light.sapphireLight }]}>
+                  <Stethoscope size={18} color={Colors.light.sapphire} />
+                </View>
+                <Text style={styles.quickActionTitle}>Doctors</Text>
+                <Text style={styles.quickActionSub}>Share reports</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => router.push("/(tabs)/(home)/health-reports")}
+                activeOpacity={0.92}
+                testID="home-open-health-reports"
+              >
+                <View style={[styles.engagementIcon, { backgroundColor: Colors.light.coralLight }]}>
+                  <FileText size={18} color={Colors.light.coral} />
+                </View>
+                <Text style={styles.quickActionTitle}>Reports</Text>
+                <Text style={styles.quickActionSub}>Export PDF</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -1150,6 +1194,32 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: Colors.light.border,
+  },
+  quickActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: "center",
+  },
+  quickActionTitle: {
+    fontSize: 11,
+    fontWeight: "800" as const,
+    color: Colors.light.text,
+    marginTop: 6,
+  },
+  quickActionSub: {
+    fontSize: 9,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+    marginTop: 2,
   },
   engagementCardTop: {
     flexDirection: "row",
