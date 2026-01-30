@@ -1252,5 +1252,622 @@ export const exercises: Exercise[] = [
       "Apply sunscreen and wear hat",
       "Dry feet completely after - check for cuts"
     ]
+  },
+  {
+    id: "41",
+    title: "Step Aerobics",
+    description: "Classic step workout for cardio and lower body toning",
+    image: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=400",
+    duration: 30,
+    intensity: "Medium",
+    category: "cardio",
+    caloriesBurned: 260,
+    benefits: [
+      "Excellent cardiovascular workout",
+      "Tones legs and glutes",
+      "Improves coordination",
+      "Adjustable intensity with step height"
+    ],
+    steps: [
+      "Set step to beginner height (4-6 inches)",
+      "Warm up with basic step-ups - 3 minutes",
+      "Practice basic step patterns",
+      "Add arm movements for intensity",
+      "Alternate leading foot every few minutes",
+      "Include knee lifts and leg kicks",
+      "Cool down with slow stepping and stretches"
+    ],
+    precautions: [
+      "Keep entire foot on the step",
+      "Don't step backwards off the platform",
+      "Wear supportive athletic shoes",
+      "Start with lower step height"
+    ]
+  },
+  {
+    id: "42",
+    title: "Kickboxing Cardio",
+    description: "High-energy martial arts-inspired workout",
+    image: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=400",
+    duration: 25,
+    intensity: "High",
+    category: "cardio",
+    caloriesBurned: 300,
+    benefits: [
+      "Burns high calories",
+      "Full body conditioning",
+      "Stress relief",
+      "Improves agility and reflexes"
+    ],
+    steps: [
+      "Warm up with jumping jacks - 3 minutes",
+      "Basic jab-cross combinations - 2 minutes",
+      "Front kicks - 2 minutes each leg",
+      "Roundhouse kicks - 2 minutes each leg",
+      "Combination drills - 8 minutes",
+      "Knee strikes and elbow combos - 4 minutes",
+      "Cool down with stretching"
+    ],
+    precautions: [
+      "Eat a snack 30-60 minutes before",
+      "Keep glucose tablets nearby",
+      "Monitor intensity level",
+      "Stay hydrated throughout"
+    ]
+  },
+  {
+    id: "43",
+    title: "Barre Workout",
+    description: "Ballet-inspired exercises for toning and flexibility",
+    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400",
+    duration: 35,
+    intensity: "Medium",
+    category: "strength",
+    caloriesBurned: 180,
+    benefits: [
+      "Builds long, lean muscles",
+      "Improves posture",
+      "Enhances flexibility",
+      "Low impact on joints"
+    ],
+    steps: [
+      "Warm up at the barre with plies - 3 minutes",
+      "Thigh work - small pulses and holds",
+      "Seat work - leg lifts and circles",
+      "Arm series with light weights",
+      "Core work on the mat",
+      "Back dancing stretches",
+      "Final stretch sequence"
+    ],
+    precautions: [
+      "Use a chair or wall for balance",
+      "Keep movements controlled",
+      "Don't lock knees",
+      "Stay hydrated"
+    ]
+  },
+  {
+    id: "44",
+    title: "Recumbent Bike",
+    description: "Comfortable seated cycling with back support",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400",
+    duration: 25,
+    intensity: "Low",
+    category: "cardio",
+    caloriesBurned: 150,
+    benefits: [
+      "Excellent for back support",
+      "Easy on hips and knees",
+      "Comfortable for longer sessions",
+      "Good for beginners"
+    ],
+    steps: [
+      "Adjust seat for proper leg extension",
+      "Start at low resistance - 5 minutes",
+      "Increase to moderate resistance",
+      "Maintain steady cadence for 15 minutes",
+      "Interval option: 1 min fast, 2 min easy",
+      "Cool down at low resistance - 5 minutes"
+    ],
+    precautions: [
+      "Ensure proper seat adjustment",
+      "Don't overextend knees",
+      "Keep water nearby",
+      "Check blood sugar before and after"
+    ]
+  },
+  {
+    id: "45",
+    title: "Qigong Practice",
+    description: "Ancient Chinese movement meditation for energy flow",
+    image: "https://images.unsplash.com/photo-1545389336-cf090694435e?w=400",
+    duration: 20,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 60,
+    benefits: [
+      "Reduces stress and anxiety",
+      "Improves balance and coordination",
+      "Enhances energy levels",
+      "Gentle on all fitness levels"
+    ],
+    steps: [
+      "Stand with feet shoulder-width apart",
+      "Begin with shaking exercise - 2 minutes",
+      "Practice 'Lifting the Sky' movement",
+      "'Pushing Mountains' - 10 repetitions",
+      "'Drawing the Bow' - each side",
+      "'Separating Heaven and Earth'",
+      "End with standing meditation - 5 minutes"
+    ],
+    precautions: [
+      "Move slowly and mindfully",
+      "Focus on breath coordination",
+      "Practice on flat surface",
+      "Don't force any movements"
+    ]
+  },
+  {
+    id: "46",
+    title: "Ankle Weights Walking",
+    description: "Add resistance to your regular walks",
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+    duration: 20,
+    intensity: "Medium",
+    category: "walking",
+    caloriesBurned: 140,
+    benefits: [
+      "Increases calorie burn",
+      "Strengthens legs while walking",
+      "Improves bone density",
+      "Easy to add to routine"
+    ],
+    steps: [
+      "Strap on 1-2 lb ankle weights",
+      "Start with 5 minutes easy walking",
+      "Walk at normal pace for 10 minutes",
+      "Focus on lifting knees slightly higher",
+      "Remove weights for cool down",
+      "Stretch calves and quadriceps"
+    ],
+    precautions: [
+      "Start with light weights (1 lb)",
+      "Don't use if you have joint issues",
+      "Remove if feeling strain",
+      "Progress weight gradually"
+    ]
+  },
+  {
+    id: "47",
+    title: "Power Walking",
+    description: "Fast-paced walking for maximum cardiovascular benefit",
+    image: "https://images.unsplash.com/photo-1483721310020-03333e577078?w=400",
+    duration: 30,
+    intensity: "Medium",
+    category: "walking",
+    caloriesBurned: 200,
+    benefits: [
+      "Burns more calories than regular walking",
+      "Improves cardiovascular fitness",
+      "Low impact exercise",
+      "Better for blood sugar control"
+    ],
+    steps: [
+      "Warm up with 5 minutes normal pace",
+      "Increase speed - aim for 4 mph pace",
+      "Pump arms actively",
+      "Keep stride length comfortable",
+      "Maintain pace for 20 minutes",
+      "Cool down with slow walking - 5 minutes"
+    ],
+    precautions: [
+      "Wear supportive walking shoes",
+      "Stay hydrated",
+      "Don't transition to jogging",
+      "Monitor heart rate if possible"
+    ]
+  },
+  {
+    id: "48",
+    title: "Kettlebell Basics",
+    description: "Learn foundational kettlebell movements",
+    image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400",
+    duration: 25,
+    intensity: "Medium",
+    category: "strength",
+    caloriesBurned: 200,
+    benefits: [
+      "Full body conditioning",
+      "Combines strength and cardio",
+      "Improves grip strength",
+      "Functional movement patterns"
+    ],
+    steps: [
+      "Warm up with bodyweight squats - 2 minutes",
+      "Kettlebell deadlifts - 10 reps, 2 sets",
+      "Goblet squats - 10 reps, 2 sets",
+      "Two-hand swings - 15 reps, 3 sets",
+      "Kettlebell rows - 10 each arm",
+      "Farmer's carry - 2 laps",
+      "Cool down and stretch"
+    ],
+    precautions: [
+      "Start with lighter weight",
+      "Learn proper hip hinge",
+      "Keep back straight",
+      "Have snack available for high intensity"
+    ]
+  },
+  {
+    id: "49",
+    title: "Shoulder Rehab Exercises",
+    description: "Gentle movements to strengthen and protect shoulders",
+    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400",
+    duration: 15,
+    intensity: "Low",
+    category: "strength",
+    caloriesBurned: 40,
+    benefits: [
+      "Prevents shoulder injuries",
+      "Improves range of motion",
+      "Strengthens rotator cuff",
+      "Reduces pain and stiffness"
+    ],
+    steps: [
+      "Pendulum swings - 1 minute each arm",
+      "Wall slides - 10 reps",
+      "External rotation with band - 15 each",
+      "Internal rotation with band - 15 each",
+      "Scapular squeezes - 15 reps",
+      "Doorway stretches - 30 seconds each",
+      "Cross-body stretch - 30 seconds each"
+    ],
+    precautions: [
+      "Stop if pain increases",
+      "Use light resistance only",
+      "Move slowly and controlled",
+      "Consult doctor if persistent pain"
+    ]
+  },
+  {
+    id: "50",
+    title: "Jumping Rope",
+    description: "Classic cardio exercise for coordination and fitness",
+    image: "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=400",
+    duration: 15,
+    intensity: "High",
+    category: "cardio",
+    caloriesBurned: 200,
+    benefits: [
+      "High calorie burn in short time",
+      "Improves coordination",
+      "Strengthens bones",
+      "Portable equipment"
+    ],
+    steps: [
+      "Size rope to armpit height",
+      "Warm up with marching - 2 minutes",
+      "Basic bounce - 30 seconds, rest 30",
+      "Repeat intervals for 10 minutes",
+      "Try alternate foot stepping",
+      "Cool down with light stretching"
+    ],
+    precautions: [
+      "Wear shock-absorbing shoes",
+      "Jump on forgiving surface",
+      "Start with short intervals",
+      "Check blood sugar before high intensity"
+    ]
+  },
+  {
+    id: "51",
+    title: "Hip Strengthening",
+    description: "Target hip muscles for better mobility and stability",
+    image: "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400",
+    duration: 20,
+    intensity: "Low",
+    category: "strength",
+    caloriesBurned: 70,
+    benefits: [
+      "Improves walking gait",
+      "Reduces knee and back pain",
+      "Enhances balance",
+      "Prevents falls"
+    ],
+    steps: [
+      "Clamshells - 15 each side, 2 sets",
+      "Side-lying leg raises - 15 each, 2 sets",
+      "Fire hydrants - 12 each side",
+      "Glute bridges - 15 reps, 2 sets",
+      "Standing hip abduction - 10 each",
+      "Hip circles - 10 each direction",
+      "Figure-4 stretch to finish"
+    ],
+    precautions: [
+      "Use a mat for floor exercises",
+      "Keep movements controlled",
+      "Don't force range of motion",
+      "Stop if sharp pain occurs"
+    ]
+  },
+  {
+    id: "52",
+    title: "Battle Ropes",
+    description: "High-intensity rope exercises for full body conditioning",
+    image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400",
+    duration: 15,
+    intensity: "High",
+    category: "cardio",
+    caloriesBurned: 220,
+    benefits: [
+      "Full body workout",
+      "Burns calories quickly",
+      "Builds grip and arm strength",
+      "Low impact on joints"
+    ],
+    steps: [
+      "Anchor rope securely",
+      "Alternating waves - 30 seconds",
+      "Rest 20 seconds",
+      "Double waves - 30 seconds",
+      "Rest 20 seconds",
+      "Slams - 30 seconds",
+      "Repeat circuit 3-4 times",
+      "Cool down with arm stretches"
+    ],
+    precautions: [
+      "Start with shorter intervals",
+      "Keep core engaged",
+      "Maintain athletic stance",
+      "Have glucose available"
+    ]
+  },
+  {
+    id: "53",
+    title: "Stability Ball Exercises",
+    description: "Core and balance work using an exercise ball",
+    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400",
+    duration: 25,
+    intensity: "Medium",
+    category: "strength",
+    caloriesBurned: 120,
+    benefits: [
+      "Improves core stability",
+      "Enhances balance",
+      "Engages stabilizer muscles",
+      "Versatile equipment"
+    ],
+    steps: [
+      "Ball squats against wall - 12 reps",
+      "Ball crunches - 15 reps, 2 sets",
+      "Plank with feet on ball - 30 seconds",
+      "Ball pass between hands and feet - 10 reps",
+      "Hamstring curls on ball - 12 reps",
+      "Back extension on ball - 12 reps",
+      "Seated balance on ball - 2 minutes"
+    ],
+    precautions: [
+      "Choose correct ball size",
+      "Ensure ball is properly inflated",
+      "Have support nearby when learning",
+      "Progress gradually"
+    ]
+  },
+  {
+    id: "54",
+    title: "Morning Energy Routine",
+    description: "Quick movements to energize your morning",
+    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400",
+    duration: 10,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 45,
+    benefits: [
+      "Wakes up the body",
+      "Improves circulation",
+      "Boosts mood and alertness",
+      "Sets positive tone for day"
+    ],
+    steps: [
+      "Sun salutation arms - 5 reps",
+      "Gentle twists side to side - 1 minute",
+      "Hip circles - 10 each direction",
+      "Marching in place - 1 minute",
+      "Arm circles - 30 seconds each way",
+      "Deep breaths with overhead reach",
+      "Light jumping or bouncing - 1 minute"
+    ],
+    precautions: [
+      "Move gently when first waking",
+      "Check blood sugar if feeling off",
+      "Have water ready",
+      "Modify based on how you feel"
+    ]
+  },
+  {
+    id: "55",
+    title: "TRX Suspension Training",
+    description: "Bodyweight exercises using suspension straps",
+    image: "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?w=400",
+    duration: 30,
+    intensity: "Medium",
+    category: "strength",
+    caloriesBurned: 170,
+    benefits: [
+      "Full body strength training",
+      "Adjustable difficulty",
+      "Improves core stability",
+      "Functional movements"
+    ],
+    steps: [
+      "TRX rows - 12 reps, 2 sets",
+      "TRX chest press - 10 reps, 2 sets",
+      "TRX squats - 15 reps, 2 sets",
+      "TRX lunges - 10 each leg",
+      "TRX plank - 30 seconds, 2 sets",
+      "TRX bicep curls - 12 reps",
+      "Stretch all major muscle groups"
+    ],
+    precautions: [
+      "Ensure straps are securely anchored",
+      "Start with easier angles",
+      "Keep core engaged",
+      "Progress angle gradually"
+    ]
+  },
+  {
+    id: "56",
+    title: "Hand and Wrist Exercises",
+    description: "Strengthen and protect hands from diabetic complications",
+    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400",
+    duration: 10,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 20,
+    benefits: [
+      "Improves circulation to hands",
+      "Prevents carpal tunnel",
+      "Maintains grip strength",
+      "Good for diabetic nerve health"
+    ],
+    steps: [
+      "Finger spreads - 10 reps",
+      "Fist squeezes - 15 reps",
+      "Wrist circles - 10 each direction",
+      "Prayer stretch - hold 30 seconds",
+      "Reverse prayer stretch - 30 seconds",
+      "Thumb touches to each finger - 3 rounds",
+      "Stress ball squeezes - 20 reps"
+    ],
+    precautions: [
+      "Don't force any movements",
+      "Stop if numbness increases",
+      "Do throughout the day",
+      "Report persistent numbness to doctor"
+    ]
+  },
+  {
+    id: "57",
+    title: "Low Impact HIIT",
+    description: "High intensity intervals without jumping",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400",
+    duration: 20,
+    intensity: "High",
+    category: "cardio",
+    caloriesBurned: 230,
+    benefits: [
+      "High calorie burn",
+      "No jumping required",
+      "Improves metabolism",
+      "Time efficient"
+    ],
+    steps: [
+      "Warm up with marching - 3 minutes",
+      "Fast squats - 30 seconds, rest 15",
+      "Speed skaters (no jump) - 30 sec, rest 15",
+      "Fast punches - 30 seconds, rest 15",
+      "High knees (fast march) - 30 sec, rest 15",
+      "Repeat circuit 3 times",
+      "Cool down with walking and stretches"
+    ],
+    precautions: [
+      "Have snack before workout",
+      "Keep glucose nearby",
+      "Monitor how you feel",
+      "Reduce intensity if needed"
+    ]
+  },
+  {
+    id: "58",
+    title: "Posture Correction",
+    description: "Exercises to improve alignment and reduce pain",
+    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400",
+    duration: 15,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 35,
+    benefits: [
+      "Reduces back and neck pain",
+      "Improves breathing",
+      "Enhances confidence",
+      "Prevents future issues"
+    ],
+    steps: [
+      "Chin tucks - 15 reps",
+      "Wall angels - 10 reps",
+      "Chest doorway stretch - 30 sec each side",
+      "Cat-cow stretches - 10 reps",
+      "Thoracic rotation - 10 each side",
+      "Shoulder blade squeezes - 15 reps",
+      "Hip flexor stretch - 30 sec each side"
+    ],
+    precautions: [
+      "Move slowly through exercises",
+      "Don't force positions",
+      "Practice daily for best results",
+      "Be patient - posture takes time"
+    ]
+  },
+  {
+    id: "59",
+    title: "Cycling Outdoors",
+    description: "Enjoy nature while getting great cardio on your bike",
+    image: "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=400",
+    duration: 40,
+    intensity: "Medium",
+    category: "cardio",
+    caloriesBurned: 320,
+    benefits: [
+      "Great cardiovascular exercise",
+      "Explores outdoors",
+      "Low impact on joints",
+      "Adjustable intensity"
+    ],
+    steps: [
+      "Check bike and tire pressure",
+      "Start on flat terrain - 10 minutes",
+      "Include some gentle hills if available",
+      "Maintain steady cadence",
+      "Take breaks as needed",
+      "Cool down with slow pedaling",
+      "Stretch quadriceps and hamstrings"
+    ],
+    precautions: [
+      "Wear a helmet",
+      "Carry glucose and water",
+      "Tell someone your route",
+      "Carry phone for emergencies"
+    ]
+  },
+  {
+    id: "60",
+    title: "Foot Care Exercises",
+    description: "Essential exercises for diabetic foot health",
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+    duration: 10,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 25,
+    benefits: [
+      "Improves circulation to feet",
+      "Maintains flexibility",
+      "Prevents complications",
+      "Reduces risk of injuries"
+    ],
+    steps: [
+      "Toe curls - pick up towel with toes",
+      "Toe spreads - 10 reps",
+      "Ankle circles - 10 each direction",
+      "Point and flex feet - 15 reps",
+      "Roll foot on tennis ball - 1 min each",
+      "Calf raises seated - 15 reps",
+      "Inspect feet for any issues"
+    ],
+    precautions: [
+      "Check feet daily for cuts or sores",
+      "Keep feet clean and dry",
+      "Never walk barefoot",
+      "Report any numbness to doctor"
+    ]
   }
 ];
