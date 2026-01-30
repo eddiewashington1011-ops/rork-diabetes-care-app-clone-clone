@@ -695,5 +695,562 @@ export const exercises: Exercise[] = [
       "Avoid screens during this routine",
       "Check blood sugar before bed"
     ]
+  },
+  {
+    id: "23",
+    title: "Seated Leg Exercises",
+    description: "Strengthen your legs while sitting - perfect for limited mobility",
+    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400",
+    duration: 15,
+    intensity: "Low",
+    category: "strength",
+    caloriesBurned: 50,
+    benefits: [
+      "Improves leg circulation",
+      "Builds quadricep strength",
+      "Can be done at desk or home",
+      "Reduces risk of blood clots"
+    ],
+    steps: [
+      "Sit tall in a sturdy chair",
+      "Leg extensions - straighten one leg, hold 3 seconds, 10 each",
+      "Seated marching - lift knees alternately, 20 reps",
+      "Heel raises - lift heels while seated, 15 reps",
+      "Toe raises - lift toes while heels stay down, 15 reps",
+      "Inner thigh squeeze with pillow - hold 5 seconds, 10 reps",
+      "Finish with ankle circles"
+    ],
+    precautions: [
+      "Use a chair without wheels",
+      "Keep core engaged for stability",
+      "Don't lock knees when extending",
+      "Move at a controlled pace"
+    ]
+  },
+  {
+    id: "24",
+    title: "Aqua Jogging",
+    description: "Run in the pool with zero impact on your joints",
+    image: "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=400",
+    duration: 30,
+    intensity: "Medium",
+    category: "cardio",
+    caloriesBurned: 240,
+    benefits: [
+      "Burns calories without joint stress",
+      "Builds cardiovascular endurance",
+      "Strengthens core and legs",
+      "Great for injury recovery"
+    ],
+    steps: [
+      "Enter deep end of pool with flotation belt",
+      "Warm up with easy water walking - 5 minutes",
+      "Begin jogging motion with high knees",
+      "Pump arms as if running on land",
+      "Maintain upright posture",
+      "Alternate between fast and easy intervals",
+      "Cool down with gentle floating - 5 minutes"
+    ],
+    precautions: [
+      "Use flotation belt in deep water",
+      "Stay near pool edge if needed",
+      "Keep glucose nearby in waterproof container",
+      "Never swim alone"
+    ]
+  },
+  {
+    id: "25",
+    title: "Gardening Workout",
+    description: "Turn yard work into a full-body exercise session",
+    image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400",
+    duration: 45,
+    intensity: "Medium",
+    category: "strength",
+    caloriesBurned: 200,
+    benefits: [
+      "Combines strength and cardio",
+      "Reduces stress through nature",
+      "Improves flexibility and mobility",
+      "Provides vitamin D from sunlight"
+    ],
+    steps: [
+      "Start with light tasks - watering plants",
+      "Progress to weeding - squat or kneel properly",
+      "Digging engages core and arms",
+      "Raking provides cardio workout",
+      "Carrying soil bags builds strength",
+      "Take breaks every 15 minutes",
+      "Stretch when finished"
+    ],
+    precautions: [
+      "Wear sunscreen and hat",
+      "Stay hydrated in warm weather",
+      "Use knee pads when kneeling",
+      "Lift with legs, not back"
+    ]
+  },
+  {
+    id: "26",
+    title: "Mini Trampoline Bounce",
+    description: "Low-impact rebounding for lymphatic and cardiovascular health",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400",
+    duration: 15,
+    intensity: "Medium",
+    category: "cardio",
+    caloriesBurned: 120,
+    benefits: [
+      "Stimulates lymphatic system",
+      "Low impact on joints",
+      "Improves balance and coordination",
+      "Fun way to get cardio"
+    ],
+    steps: [
+      "Stand in center of rebounder",
+      "Start with gentle bounces - feet stay on mat",
+      "Progress to small jumps - 2 minutes",
+      "Add arm movements for more intensity",
+      "Try jogging in place on rebounder",
+      "Alternate between bouncing and marching",
+      "Cool down with gentle bounces"
+    ],
+    precautions: [
+      "Use rebounder with stability bar if needed",
+      "Start slowly to find balance",
+      "Keep bounces controlled",
+      "Check blood sugar before and after"
+    ]
+  },
+  {
+    id: "27",
+    title: "Wall Exercises",
+    description: "Use a wall for support in this effective strength routine",
+    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400",
+    duration: 20,
+    intensity: "Medium",
+    category: "strength",
+    caloriesBurned: 100,
+    benefits: [
+      "Provides support and stability",
+      "Builds leg and core strength",
+      "Safe for beginners",
+      "No equipment needed"
+    ],
+    steps: [
+      "Wall push-ups - 15 reps, 2 sets",
+      "Wall sit - hold 30-60 seconds, 3 sets",
+      "Wall slides for shoulders - 10 reps",
+      "Single leg balance against wall - 30 sec each",
+      "Calf raises with wall support - 15 reps",
+      "Wall plank hold - 30 seconds",
+      "Stretch using wall for support"
+    ],
+    precautions: [
+      "Choose a sturdy wall",
+      "Wear non-slip shoes or go barefoot",
+      "Keep back flat against wall during sits",
+      "Don't hold breath during exercises"
+    ]
+  },
+  {
+    id: "28",
+    title: "Golf Practice",
+    description: "Work on your swing while getting gentle exercise",
+    image: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400",
+    duration: 40,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 150,
+    benefits: [
+      "Improves flexibility and rotation",
+      "Enhances balance and coordination",
+      "Low-impact activity",
+      "Promotes social interaction"
+    ],
+    steps: [
+      "Warm up with trunk rotations - 2 minutes",
+      "Practice putting - 10 minutes",
+      "Chip shot practice - 10 minutes",
+      "Full swing practice - 15 minutes",
+      "Walk between stations",
+      "Stretch hip flexors and back after"
+    ],
+    precautions: [
+      "Warm up thoroughly before swinging",
+      "Carry snacks and water",
+      "Wear supportive golf shoes",
+      "Protect skin from sun exposure"
+    ]
+  },
+  {
+    id: "29",
+    title: "Rowing Machine",
+    description: "Full-body cardio workout that's gentle on joints",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400",
+    duration: 20,
+    intensity: "Medium",
+    category: "cardio",
+    caloriesBurned: 180,
+    benefits: [
+      "Works 86% of body muscles",
+      "Low impact on joints",
+      "Excellent cardiovascular exercise",
+      "Builds back and leg strength"
+    ],
+    steps: [
+      "Set resistance to low-medium level",
+      "Warm up with 3 minutes easy rowing",
+      "Focus on proper form - legs, back, arms",
+      "Row at moderate pace for 12 minutes",
+      "Include 30-second speed bursts every 3 minutes",
+      "Cool down with 2 minutes easy rowing",
+      "Stretch hamstrings and back"
+    ],
+    precautions: [
+      "Learn proper rowing technique first",
+      "Don't round your back",
+      "Start with shorter sessions",
+      "Keep water bottle nearby"
+    ]
+  },
+  {
+    id: "30",
+    title: "Elliptical Training",
+    description: "Smooth, low-impact cardio that mimics running",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400",
+    duration: 25,
+    intensity: "Medium",
+    category: "cardio",
+    caloriesBurned: 220,
+    benefits: [
+      "Zero impact on joints",
+      "Works both upper and lower body",
+      "Adjustable resistance levels",
+      "Easy to control intensity"
+    ],
+    steps: [
+      "Step onto machine and grip handles",
+      "Start at low resistance - 3 minutes",
+      "Increase to moderate resistance",
+      "Maintain steady pace for 15 minutes",
+      "Try going backwards for 3 minutes",
+      "Increase resistance for final 2 minutes",
+      "Cool down at low resistance - 2 minutes"
+    ],
+    precautions: [
+      "Hold handrails when stepping on/off",
+      "Start at lower resistance",
+      "Keep upright posture",
+      "Don't lean on handrails"
+    ]
+  },
+  {
+    id: "31",
+    title: "Stretching for Back Pain",
+    description: "Gentle stretches to relieve and prevent back discomfort",
+    image: "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400",
+    duration: 15,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 35,
+    benefits: [
+      "Relieves back tension",
+      "Improves spinal mobility",
+      "Prevents future back issues",
+      "Can be done daily"
+    ],
+    steps: [
+      "Knee-to-chest stretch - 30 sec each leg",
+      "Cat-cow stretches on all fours - 10 reps",
+      "Child's pose - hold 1 minute",
+      "Pelvic tilts lying down - 15 reps",
+      "Lying spinal twist - 30 sec each side",
+      "Figure-4 stretch for glutes - 30 sec each",
+      "Seated forward fold - 1 minute"
+    ],
+    precautions: [
+      "Move slowly and gently",
+      "Stop if sharp pain occurs",
+      "Use a yoga mat for comfort",
+      "Consult doctor if chronic back issues"
+    ]
+  },
+  {
+    id: "32",
+    title: "Boxing Basics",
+    description: "Learn basic punches for a high-energy cardio workout",
+    image: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=400",
+    duration: 20,
+    intensity: "High",
+    category: "cardio",
+    caloriesBurned: 250,
+    benefits: [
+      "Excellent stress relief",
+      "High calorie burn",
+      "Improves coordination",
+      "Builds upper body strength"
+    ],
+    steps: [
+      "Warm up with jump rope or marching - 3 min",
+      "Practice basic stance and footwork",
+      "Jab-cross combinations - 2 minutes",
+      "Add hooks and uppercuts - 2 minutes",
+      "Combination drills - 5 minutes",
+      "Shadow boxing - 5 minutes",
+      "Cool down with arm stretches"
+    ],
+    precautions: [
+      "Start slowly to learn proper form",
+      "Keep wrists straight when punching",
+      "Have snack before high-intensity work",
+      "Monitor blood sugar closely"
+    ]
+  },
+  {
+    id: "33",
+    title: "Nordic Walking",
+    description: "Walking with poles for enhanced upper body engagement",
+    image: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400",
+    duration: 35,
+    intensity: "Medium",
+    category: "walking",
+    caloriesBurned: 210,
+    benefits: [
+      "Uses 90% of body muscles",
+      "Burns 40% more calories than regular walking",
+      "Improves posture",
+      "Reduces joint stress"
+    ],
+    steps: [
+      "Adjust pole height to elbow level",
+      "Start walking naturally - 5 minutes",
+      "Add pole technique - opposite arm to leg",
+      "Push through the strap, release grip slightly",
+      "Maintain upright posture",
+      "Walk at brisk pace for 25 minutes",
+      "Cool down without poles - 5 minutes"
+    ],
+    precautions: [
+      "Learn proper pole technique",
+      "Start on flat terrain",
+      "Wear appropriate footwear",
+      "Carry water and snacks"
+    ]
+  },
+  {
+    id: "34",
+    title: "Foam Rolling Recovery",
+    description: "Self-massage technique to release muscle tension",
+    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400",
+    duration: 15,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 30,
+    benefits: [
+      "Releases muscle knots",
+      "Improves blood circulation",
+      "Speeds up recovery",
+      "Increases flexibility"
+    ],
+    steps: [
+      "Start with calves - roll slowly, 1 min each",
+      "Move to quadriceps - 1 min each leg",
+      "Roll IT band on outer thigh - 1 min each",
+      "Upper back rolling - 2 minutes",
+      "Glute massage - 1 min each side",
+      "Lat rolling - 1 min each side",
+      "Finish with hip flexor release"
+    ],
+    precautions: [
+      "Avoid rolling directly on bones",
+      "Don't roll over lower back",
+      "Pause on tender spots, don't push hard",
+      "Breathe deeply throughout"
+    ]
+  },
+  {
+    id: "35",
+    title: "Tennis or Pickleball",
+    description: "Fun racquet sports that combine cardio with agility",
+    image: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400",
+    duration: 45,
+    intensity: "Medium",
+    category: "cardio",
+    caloriesBurned: 280,
+    benefits: [
+      "Improves hand-eye coordination",
+      "Burns significant calories",
+      "Social and enjoyable",
+      "Enhances agility and reflexes"
+    ],
+    steps: [
+      "Warm up with light jogging - 5 minutes",
+      "Practice forehand and backhand swings",
+      "Rally with partner at moderate pace",
+      "Take water breaks every 10-15 minutes",
+      "Play games or continue rallying",
+      "Cool down with stretching - 5 minutes"
+    ],
+    precautions: [
+      "Wear proper court shoes",
+      "Carry fast-acting glucose",
+      "Stay hydrated throughout",
+      "Avoid playing in extreme heat"
+    ]
+  },
+  {
+    id: "36",
+    title: "Breathing Exercises",
+    description: "Deep breathing techniques to reduce stress and lower blood sugar",
+    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400",
+    duration: 10,
+    intensity: "Low",
+    category: "flexibility",
+    caloriesBurned: 15,
+    benefits: [
+      "Reduces cortisol and stress",
+      "Lowers blood pressure",
+      "Improves oxygen delivery",
+      "Can be done anywhere"
+    ],
+    steps: [
+      "Find a comfortable seated position",
+      "Box breathing - inhale 4 counts, hold 4, exhale 4, hold 4",
+      "Repeat box breathing for 3 minutes",
+      "4-7-8 breathing - inhale 4, hold 7, exhale 8",
+      "Repeat 4-7-8 for 3 minutes",
+      "Belly breathing - hand on stomach, breathe deeply",
+      "End with natural breathing - 2 minutes"
+    ],
+    precautions: [
+      "Don't force breathing",
+      "Stop if feeling dizzy",
+      "Practice in a quiet space",
+      "Can be combined with meditation"
+    ]
+  },
+  {
+    id: "37",
+    title: "Leg Press Machine",
+    description: "Safely build lower body strength with machine support",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400",
+    duration: 20,
+    intensity: "Medium",
+    category: "strength",
+    caloriesBurned: 120,
+    benefits: [
+      "Builds quadriceps and glutes",
+      "Machine provides stability",
+      "Adjustable resistance",
+      "Good for beginners"
+    ],
+    steps: [
+      "Adjust seat and back rest",
+      "Start with light weight - 10 warm-up reps",
+      "Increase weight to working level",
+      "Perform 12 reps, 3 sets",
+      "Rest 60-90 seconds between sets",
+      "Try single-leg press - 10 each leg",
+      "Stretch quads and hamstrings after"
+    ],
+    precautions: [
+      "Don't lock knees at extension",
+      "Keep lower back pressed into seat",
+      "Start with lighter weight",
+      "Breathe out when pushing"
+    ]
+  },
+  {
+    id: "38",
+    title: "Mall Walking",
+    description: "Walk indoors in climate-controlled comfort",
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400",
+    duration: 30,
+    intensity: "Low",
+    category: "walking",
+    caloriesBurned: 130,
+    benefits: [
+      "Weather-proof exercise option",
+      "Flat, safe walking surface",
+      "Restrooms readily available",
+      "Social opportunity"
+    ],
+    steps: [
+      "Arrive when mall opens for fewer crowds",
+      "Start with one lap at easy pace",
+      "Increase to brisk walking pace",
+      "Walk multiple laps - aim for 2 miles",
+      "Take stairs instead of escalators",
+      "Cool down with slower lap",
+      "Stretch in a quiet area"
+    ],
+    precautions: [
+      "Wear comfortable walking shoes",
+      "Avoid peak shopping hours",
+      "Carry water bottle",
+      "Know where restrooms are located"
+    ]
+  },
+  {
+    id: "39",
+    title: "Seated Upper Body Workout",
+    description: "Strengthen arms and shoulders while seated",
+    image: "https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=400",
+    duration: 20,
+    intensity: "Low",
+    category: "strength",
+    caloriesBurned: 70,
+    benefits: [
+      "Accessible for limited mobility",
+      "Builds upper body strength",
+      "Can use light weights or resistance bands",
+      "Improves posture"
+    ],
+    steps: [
+      "Sit tall in sturdy chair",
+      "Seated arm circles - 30 seconds each direction",
+      "Seated bicep curls - 12 reps, 2 sets",
+      "Overhead press - 10 reps, 2 sets",
+      "Seated rows with band - 12 reps, 2 sets",
+      "Chest press with band - 10 reps, 2 sets",
+      "Shoulder shrugs - 15 reps",
+      "Stretch shoulders and arms"
+    ],
+    precautions: [
+      "Use light weights to start",
+      "Keep feet flat on floor",
+      "Engage core for stability",
+      "Move with control"
+    ]
+  },
+  {
+    id: "40",
+    title: "Beach Walking",
+    description: "Walk on sand for extra resistance and calorie burn",
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400",
+    duration: 25,
+    intensity: "Medium",
+    category: "walking",
+    caloriesBurned: 170,
+    benefits: [
+      "Sand resistance increases workout intensity",
+      "Strengthens ankles and calves",
+      "Calming ocean environment",
+      "Fresh air and vitamin D"
+    ],
+    steps: [
+      "Start on firm wet sand near water",
+      "Walk at comfortable pace - 5 minutes",
+      "Move to softer sand for more challenge",
+      "Alternate between wet and dry sand",
+      "Walk for 15-20 minutes total",
+      "Cool down on firm sand",
+      "Rinse and dry feet thoroughly"
+    ],
+    precautions: [
+      "Wear water shoes or go barefoot carefully",
+      "Watch for shells and debris",
+      "Apply sunscreen and wear hat",
+      "Dry feet completely after - check for cuts"
+    ]
   }
 ];
