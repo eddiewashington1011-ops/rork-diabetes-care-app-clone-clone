@@ -13,38 +13,79 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
+  FlatList,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Search, Clock, Flame, X, Globe, Leaf, CupSoda, Sparkles, WifiOff } from "lucide-react-native";
+import { Search, Clock, X, Sparkles, WifiOff, ChefHat, Grid3X3, List } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { BottomCTA } from "@/components/BottomCTA";
 import { recipeCategories } from "@/mocks/recipes";
 import { useRecipes, CoachRecipe } from "@/providers/recipes";
 
-function RecipeCard({ recipe, onPress }: { recipe: CoachRecipe; onPress: () => void }) {
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_GAP = 12;
+const CARD_WIDTH = (SCREEN_WIDTH - 40 - CARD_GAP) / 2;
+
+function RecipeCardGrid({ recipe, onPress }: { recipe: CoachRecipe; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.recipeCard} onPress={onPress} activeOpacity={0.8}>
-      <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-      <View style={styles.recipeContent}>
-        <View style={styles.categoryTag}>
-          <Text style={styles.categoryText}>{recipe.category}</Text>
+    <TouchableOpacity style={styles.gridCard} onPress={onPress} activeOpacity={0.85}>
+      <Image source={{ uri: recipe.image }} style={styles.gridImage} />
+      <View style={styles.gridOverlay}>
+        <View style={styles.gridCarbBadge}>
+          <Text style={styles.gridCarbText}>{recipe.carbsPerServing}g</Text>
         </View>
-        <Text style={styles.recipeTitle}>{recipe.title}</Text>
-        <Text style={styles.recipeDesc} numberOfLines={2}>
-          {recipe.description}
-        </Text>
-        <View style={styles.recipeMeta}>
-          <View style={styles.metaItem}>
-            <Clock size={14} color={Colors.light.textSecondary} />
-            <Text style={styles.metaText}>{recipe.prepTime + recipe.cookTime} min</Text>
+      </View>
+      <View style={styles.gridContent}>
+        <Text style={styles.gridTitle} numberOfLines={2}>{recipe.title}</Text>
+        <View style={styles.gridMeta}>
+          <Clock size={12} color={Colors.light.textSecondary} />
+          <Text style={styles.gridMetaText}>{recipe.prepTime + recipe.cookTime} min</Text>
+          <Text style={styles.gridMetaDot}>•</Text>
+          <Text style={styles.gridMetaText}>{recipe.calories} cal</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function RecipeCardList({ recipe, onPress }: { recipe: CoachRecipe; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.listCard} onPress={onPress} activeOpacity={0.85}>
+      <Image source={{ uri: recipe.image }} style={styles.listImage} />
+      <View style={styles.listContent}>
+        <View style={styles.listHeader}>
+          <View style={styles.listCategoryTag}>
+            <Text style={styles.listCategoryText}>{recipe.category}</Text>
           </View>
-          <View style={styles.metaItem}>
-            <Flame size={14} color={Colors.light.accent} />
-            <Text style={styles.metaText}>{recipe.calories} cal</Text>
+          <View style={styles.listCarbBadge}>
+            <Text style={styles.listCarbText}>{recipe.carbsPerServing}g carbs</Text>
           </View>
-          <View style={styles.carbBadge}>
-            <Text style={styles.carbText}>{recipe.carbsPerServing}g carbs</Text>
-          </View>
+        </View>
+        <Text style={styles.listTitle} numberOfLines={1}>{recipe.title}</Text>
+        <Text style={styles.listDesc} numberOfLines={1}>{recipe.description}</Text>
+        <View style={styles.listMeta}>
+          <Clock size={12} color={Colors.light.textSecondary} />
+          <Text style={styles.listMetaText}>{recipe.prepTime + recipe.cookTime} min</Text>
+          <Text style={styles.listMetaDot}>•</Text>
+          <Text style={styles.listMetaText}>{recipe.calories} cal</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function QuickPickCard({ recipe, onPress }: { recipe: CoachRecipe; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.quickCard} onPress={onPress} activeOpacity={0.85}>
+      <Image source={{ uri: recipe.image }} style={styles.quickImage} />
+      <View style={styles.quickOverlay}>
+        <View style={styles.quickBadge}>
+          <Text style={styles.quickBadgeText}>{recipe.carbsPerServing}g</Text>
+        </View>
+        <View style={styles.quickBottom}>
+          <Text style={styles.quickTitle} numberOfLines={2}>{recipe.title}</Text>
+          <Text style={styles.quickMeta}>{recipe.prepTime + recipe.cookTime} min</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -58,6 +99,7 @@ export default function RecipesScreen() {
 
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const [coachOpen, setCoachOpen] = useState<boolean>(false);
   const [coachGoal, setCoachGoal] = useState<string>("Blood sugar control");
@@ -83,34 +125,10 @@ export default function RecipesScreen() {
     return getPage({ categoryId: activeCategory, query: searchQuery, offset: 0, limit: 120 });
   }, [activeCategory, getPage, searchQuery]);
 
-  const sectionedRecipes = useMemo(() => {
-    if (activeCategory !== "all") return null;
-    if (searchQuery.trim().length > 0) return null;
-
-    const order = ["breakfast", "lunch", "dinner", "snacks", "desserts", "teas"] as const;
-
-    const sections = order
-      .map((categoryId) => {
-        const items = getPage({ categoryId, query: "", offset: 0, limit: 18 });
-        return { categoryId, items };
-      })
-      .filter((s) => s.items.length > 0);
-
-    return sections;
-  }, [activeCategory, getPage, searchQuery]);
-
-  const worldBestPick = useMemo(() => {
-    const picks = getPage({ categoryId: "world-best", query: "", offset: 0, limit: 24 }).sort(
-      (a, b) => a.carbsPerServing - b.carbsPerServing,
-    );
-    return picks[0] ?? null;
-  }, [getPage]);
-
-  const teasPick = useMemo(() => {
-    const picks = getPage({ categoryId: "teas", query: "", offset: 0, limit: 24 }).sort(
-      (a, b) => a.carbsPerServing - b.carbsPerServing,
-    );
-    return picks[0] ?? null;
+  const quickPicks = useMemo(() => {
+    return getPage({ categoryId: "all", query: "", offset: 0, limit: 12 })
+      .sort((a, b) => a.carbsPerServing - b.carbsPerServing)
+      .slice(0, 6);
   }, [getPage]);
 
   const openRecipe = useCallback(
@@ -145,125 +163,45 @@ export default function RecipesScreen() {
     }
   }, [coachGoal, coachPrefs, createRecipeWithAgent, isGenerating, openRecipe]);
 
+  const renderGridItem = useCallback(({ item }: { item: CoachRecipe }) => (
+    <RecipeCardGrid recipe={item} onPress={() => openRecipe(item.id)} />
+  ), [openRecipe]);
+
+  const renderListItem = useCallback(({ item }: { item: CoachRecipe }) => (
+    <RecipeCardList recipe={item} onPress={() => openRecipe(item.id)} />
+  ), [openRecipe]);
+
+  const allRecipes = useMemo(() => {
+    return topRecipes;
+  }, [topRecipes]);
+
   return (
     <View style={styles.container} testID="cookbook-screen">
-      <View style={styles.hero} testID="cookbook-hero">
-        <View style={styles.heroTopRow}>
-          <View style={styles.heroTitleWrap}>
-            <Text style={styles.heroEyebrow}>Cookbook</Text>
-            <Text style={styles.heroTitle}>Cookbook: 8,000+ diabetes-friendly recipes</Text>
+      <View style={styles.header} testID="cookbook-header">
+        <View style={styles.headerTop}>
+          <View style={styles.headerLeft}>
+            <ChefHat size={24} color={Colors.light.tint} />
+            <View>
+              <Text style={styles.headerTitle}>Cookbook</Text>
+              <Text style={styles.headerSubtitle}>{totalVirtualCount.toLocaleString()}+ recipes</Text>
+            </View>
           </View>
-          <View style={styles.heroIconBadge}>
-            <Globe size={18} color={Colors.light.sapphire} />
-          </View>
-        </View>
-
-        <View style={styles.heroChipsRow}>
-          <View style={styles.heroChip}>
-            <Leaf size={14} color={Colors.light.success} />
-            <Text style={styles.heroChipText}>No added sugar</Text>
-          </View>
-          <View style={styles.heroChip}>
-            <CupSoda size={14} color={Colors.light.gold} />
-            <Text style={styles.heroChipText}>Low glycemic load</Text>
-          </View>
-        </View>
-
-        <View style={styles.heroCoachRow}>
           <TouchableOpacity
-            style={styles.coachButton}
+            style={styles.aiButton}
             onPress={() => setCoachOpen(true)}
-            activeOpacity={0.9}
+            activeOpacity={0.85}
             testID="cookbook-open-coach"
           >
-            <View style={styles.coachIcon}>
-              <Sparkles size={16} color={Colors.light.sapphire} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.coachTitle}>Ask Dia</Text>
-              <Text style={styles.coachSubtitle} numberOfLines={1}>
-                Tell me what you’re craving — I’ll make it diabetes-friendly
-              </Text>
-            </View>
-            <View style={styles.coachPill}>
-              <Text style={styles.coachPillText}>AI</Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.heroCountPill} testID="cookbook-total-count">
-            <Text style={styles.heroCountText}>{totalVirtualCount.toLocaleString()}+</Text>
-            <Text style={styles.heroCountSub}>recipes</Text>
-          </View>
-        </View>
-
-        <View style={styles.heroCardsRow}>
-          <TouchableOpacity
-            style={styles.featureCard}
-            onPress={() => {
-              if (!worldBestPick) return;
-              router.push(`/(tabs)/recipes/${worldBestPick.id}`);
-            }}
-            activeOpacity={0.85}
-            testID="cookbook-feature-worldbest"
-          >
-            <Image
-              source={{
-                uri:
-                  worldBestPick?.image ??
-                  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400",
-              }}
-              style={styles.featureImage}
-            />
-            <View style={styles.featureOverlay}>
-              <Text style={styles.featureKicker}>Best of the world</Text>
-              <Text style={styles.featureTitle} numberOfLines={2}>
-                {worldBestPick?.title ?? "World Best Picks"}
-              </Text>
-              <Text style={styles.featureMeta} numberOfLines={1}>
-                {(worldBestPick?.origin ?? "Global") +
-                  " • " +
-                  String(worldBestPick?.carbsPerServing ?? 0) +
-                  "g carbs"}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.featureCard, styles.featureCardAlt]}
-            onPress={() => {
-              if (!teasPick) return;
-              router.push(`/(tabs)/recipes/${teasPick.id}`);
-            }}
-            activeOpacity={0.85}
-            testID="cookbook-feature-tea"
-          >
-            <Image
-              source={{
-                uri:
-                  teasPick?.image ??
-                  "https://images.unsplash.com/photo-1548611716-300e3f5b17f6?w=400",
-              }}
-              style={styles.featureImage}
-            />
-            <View style={styles.featureOverlay}>
-              <Text style={styles.featureKicker}>Teas that hit</Text>
-              <Text style={styles.featureTitle} numberOfLines={2}>
-                {teasPick?.title ?? "Tea Pairings"}
-              </Text>
-              <Text style={styles.featureMeta} numberOfLines={1}>
-                {String(teasPick?.carbsPerServing ?? 0) + "g carbs • no sugar"}
-              </Text>
-            </View>
+            <Sparkles size={16} color="#fff" />
+            <Text style={styles.aiButtonText}>Ask Dia</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.searchContainer} testID="cookbook-search">
         <View style={styles.searchBar}>
           <Search size={18} color={Colors.light.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search recipes, origins, teas…"
+            placeholder="Search recipes…"
             placeholderTextColor={Colors.light.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -306,56 +244,81 @@ export default function RecipesScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView
-        style={styles.recipesScroll}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.recipesContainer}
-        testID="cookbook-list"
-      >
-        {isHydrating ? (
-          <View style={styles.loadingState}>
-            <ActivityIndicator size="small" color={Colors.light.tint} />
-            <Text style={styles.loadingText}>Loading cookbook…</Text>
+      {searchQuery.length === 0 && activeCategory === "all" && quickPicks.length > 0 && (
+        <View style={styles.quickSection}>
+          <View style={styles.quickHeader}>
+            <Text style={styles.quickHeaderTitle}>Quick Picks</Text>
+            <Text style={styles.quickHeaderSub}>Lowest carbs</Text>
           </View>
-        ) : (sectionedRecipes?.length ?? 0) > 0 ? (
-          sectionedRecipes?.map((section) => {
-            const titleByCategory: Record<string, string> = {
-              breakfast: "Breakfast",
-              lunch: "Lunch",
-              dinner: "Dinner",
-              snacks: "Snacks",
-              desserts: "Desserts",
-              teas: "Teas",
-            };
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickScroll}
+          >
+            {quickPicks.map((recipe) => (
+              <QuickPickCard
+                key={recipe.id}
+                recipe={recipe}
+                onPress={() => openRecipe(recipe.id)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
-            return (
-              <View key={section.categoryId} style={styles.sectionBlock} testID={`cookbook-section-${section.categoryId}`}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{titleByCategory[section.categoryId] ?? section.categoryId}</Text>
-                  <Text style={styles.sectionSubtitle}>{section.items.length}+ picks</Text>
-                </View>
+      <View style={styles.toolbar}>
+        <Text style={styles.resultsText}>
+          {allRecipes.length} recipes
+        </Text>
+        <View style={styles.viewToggle}>
+          <TouchableOpacity
+            style={[styles.viewButton, viewMode === "grid" && styles.viewButtonActive]}
+            onPress={() => setViewMode("grid")}
+          >
+            <Grid3X3 size={18} color={viewMode === "grid" ? Colors.light.tint : Colors.light.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.viewButton, viewMode === "list" && styles.viewButtonActive]}
+            onPress={() => setViewMode("list")}
+          >
+            <List size={18} color={viewMode === "list" ? Colors.light.tint : Colors.light.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
-                <View style={styles.sectionList}>
-                  {section.items.map((recipe) => (
-                    <RecipeCard key={recipe.id} recipe={recipe} onPress={() => openRecipe(recipe.id)} />
-                  ))}
-                </View>
-              </View>
-            );
-          })
-        ) : topRecipes.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🍽️</Text>
-            <Text style={styles.emptyText}>No recipes found</Text>
-            <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
-            {lastError ? <Text style={styles.errorHint}>{lastError}</Text> : null}
-          </View>
-        ) : (
-          topRecipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} onPress={() => openRecipe(recipe.id)} />
-          ))
-        )}
-      </ScrollView>
+      {isHydrating ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="small" color={Colors.light.tint} />
+          <Text style={styles.loadingText}>Loading cookbook…</Text>
+        </View>
+      ) : allRecipes.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>🍽️</Text>
+          <Text style={styles.emptyText}>No recipes found</Text>
+          <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
+          {lastError ? <Text style={styles.errorHint}>{lastError}</Text> : null}
+        </View>
+      ) : viewMode === "grid" ? (
+        <FlatList
+          data={allRecipes}
+          renderItem={renderGridItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.gridContainer}
+          showsVerticalScrollIndicator={false}
+          testID="cookbook-grid"
+        />
+      ) : (
+        <FlatList
+          data={allRecipes}
+          renderItem={renderListItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          testID="cookbook-list"
+        />
+      )}
 
       <Modal
         visible={coachOpen}
@@ -449,7 +412,7 @@ export default function RecipesScreen() {
 
       <BottomCTA
         title="Generate recipe"
-        subtitle="Tell Dia what you’re craving"
+        subtitle="Tell Dia what you're craving"
         onPress={onOpenCoach}
         testID="cookbook-bottom-cta"
       />
@@ -462,202 +425,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  hero: {
-    paddingTop: 14,
+  header: {
+    paddingTop: 12,
     paddingHorizontal: 20,
     paddingBottom: 12,
+    backgroundColor: Colors.light.background,
   },
-  heroTopRow: {
+  headerTop: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 14,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
-  heroTitleWrap: {
-    flex: 1,
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: Colors.light.sapphire,
-    marginBottom: 6,
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: Colors.light.text,
-    lineHeight: 28,
-  },
-  heroIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: Colors.light.sapphireLight,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  heroChipsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 12,
-  },
-  heroCoachRow: {
-    marginTop: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  coachButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: Colors.light.sapphireLight,
-    borderWidth: 1,
-    borderColor: "rgba(11, 58, 91, 0.14)",
-  },
-  coachIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.75)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(11, 58, 91, 0.12)",
-  },
-  coachTitle: {
-    fontSize: 14,
-    fontWeight: "900" as const,
-    color: Colors.light.sapphire,
-  },
-  coachSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: "700" as const,
-    color: Colors.light.textSecondary,
-  },
-  coachPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: Colors.light.sapphire,
-  },
-  coachPillText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "900" as const,
-    letterSpacing: 0.3,
-  },
-  heroCountPill: {
-    width: 86,
-    paddingVertical: 10,
-    borderRadius: 16,
-    backgroundColor: Colors.light.surface,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroCountText: {
-    fontSize: 16,
-    fontWeight: "900" as const,
-    color: Colors.light.text,
-  },
-  heroCountSub: {
-    marginTop: 1,
-    fontSize: 11,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: "800" as const,
-    color: Colors.light.textSecondary,
+    color: Colors.light.text,
   },
-  heroChip: {
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+    marginTop: 1,
+  },
+  aiButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: Colors.light.surface,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    gap: 6,
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  heroChipText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Colors.light.textSecondary,
-  },
-  heroCardsRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 14,
-  },
-  featureCard: {
-    flex: 1,
-    height: 140,
-    borderRadius: 18,
-    overflow: "hidden",
-    backgroundColor: Colors.light.surface,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  featureCardAlt: {
-    transform: [{ translateY: 6 }],
-  },
-  featureImage: {
-    width: "100%",
-    height: "100%",
-  },
-  featureOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 12,
-    paddingTop: 28,
-    paddingBottom: 12,
-    backgroundColor: "rgba(11, 58, 91, 0.55)",
-  },
-  featureKicker: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-    color: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 4,
-  },
-  featureTitle: {
-    fontSize: 14,
-    fontWeight: "800",
+  aiButtonText: {
     color: "#fff",
-    lineHeight: 18,
-    marginBottom: 3,
-  },
-  featureMeta: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "rgba(255, 255, 255, 0.85)",
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 8,
+    fontSize: 13,
+    fontWeight: "700" as const,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.light.surface,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     gap: 10,
     borderWidth: 1,
     borderColor: Colors.light.border,
@@ -668,20 +484,20 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   categoryScroll: {
-    maxHeight: 54,
+    maxHeight: 48,
   },
   categoryContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 6,
     gap: 8,
     flexDirection: "row",
   },
   categoryChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: Colors.light.surface,
     borderWidth: 1,
@@ -692,119 +508,263 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.tint,
   },
   categoryIcon: {
-    fontSize: 14,
+    fontSize: 13,
   },
   categoryChipText: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "600" as const,
     color: Colors.light.textSecondary,
   },
   categoryChipTextActive: {
     color: "#fff",
   },
-  recipesScroll: {
-    flex: 1,
+  quickSection: {
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  recipesContainer: {
-    padding: 20,
-    paddingBottom: 140,
-    gap: 16,
-  },
-  sectionBlock: {
-    gap: 10,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "900" as const,
-    color: Colors.light.text,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    fontWeight: "800" as const,
-    color: Colors.light.textSecondary,
-  },
-  sectionList: {
-    gap: 16,
-  },
-  recipeCard: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 18,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  recipeImage: {
-    width: "100%",
-    height: 160,
-  },
-  recipeContent: {
-    padding: 16,
-  },
-  categoryTag: {
-    alignSelf: "flex-start",
-    backgroundColor: Colors.light.tintLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.light.tint,
-    textTransform: "capitalize",
-  },
-  recipeTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: Colors.light.text,
-    marginBottom: 6,
-  },
-  recipeDesc: {
-    fontSize: 13,
-    color: Colors.light.textSecondary,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  recipeMeta: {
+  quickHeader: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  quickHeaderTitle: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: Colors.light.text,
+  },
+  quickHeaderSub: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+  },
+  quickScroll: {
+    paddingHorizontal: 20,
     gap: 10,
   },
-  metaItem: {
+  quickCard: {
+    width: 130,
+    height: 160,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: Colors.light.surface,
+  },
+  quickImage: {
+    width: "100%",
+    height: "100%",
+  },
+  quickOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    padding: 10,
+    justifyContent: "space-between",
+  },
+  quickBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: Colors.light.success,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  quickBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700" as const,
+  },
+  quickBottom: {
+    gap: 2,
+  },
+  quickTitle: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700" as const,
+    lineHeight: 17,
+  },
+  quickMeta: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 11,
+    fontWeight: "600" as const,
+  },
+  toolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  resultsText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+  },
+  viewToggle: {
+    flexDirection: "row",
+    backgroundColor: Colors.light.surface,
+    borderRadius: 10,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  viewButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  viewButtonActive: {
+    backgroundColor: Colors.light.background,
+  },
+  gridContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 120,
+  },
+  gridRow: {
+    justifyContent: "space-between",
+    marginBottom: CARD_GAP,
+  },
+  gridCard: {
+    width: CARD_WIDTH,
+    backgroundColor: Colors.light.surface,
+    borderRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  gridImage: {
+    width: "100%",
+    height: 110,
+  },
+  gridOverlay: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
+  gridCarbBadge: {
+    backgroundColor: Colors.light.success,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  gridCarbText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700" as const,
+  },
+  gridContent: {
+    padding: 10,
+  },
+  gridTitle: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: Colors.light.text,
+    lineHeight: 17,
+    marginBottom: 6,
+    minHeight: 34,
+  },
+  gridMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  metaText: {
-    fontSize: 12,
-    color: Colors.light.textSecondary,
-    fontWeight: "500",
-  },
-  carbBadge: {
-    backgroundColor: Colors.light.successLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginLeft: "auto",
-  },
-  carbText: {
+  gridMetaText: {
     fontSize: 11,
-    fontWeight: "600",
+    color: Colors.light.textSecondary,
+    fontWeight: "500" as const,
+  },
+  gridMetaDot: {
+    color: Colors.light.textSecondary,
+    fontSize: 11,
+  },
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 120,
+    gap: 12,
+  },
+  listCard: {
+    flexDirection: "row",
+    backgroundColor: Colors.light.surface,
+    borderRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  listImage: {
+    width: 100,
+    height: 100,
+  },
+  listContent: {
+    flex: 1,
+    padding: 12,
+    justifyContent: "center",
+  },
+  listHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  listCategoryTag: {
+    backgroundColor: Colors.light.tintLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  listCategoryText: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+    color: Colors.light.tint,
+    textTransform: "capitalize",
+  },
+  listCarbBadge: {
+    backgroundColor: Colors.light.successLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  listCarbText: {
+    fontSize: 10,
+    fontWeight: "600" as const,
     color: Colors.light.success,
   },
-  emptyState: {
+  listTitle: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: Colors.light.text,
+    marginBottom: 2,
+  },
+  listDesc: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    marginBottom: 6,
+  },
+  listMeta: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 4,
+  },
+  listMetaText: {
+    fontSize: 11,
+    color: Colors.light.textSecondary,
+    fontWeight: "500" as const,
+  },
+  listMetaDot: {
+    color: Colors.light.textSecondary,
+    fontSize: 11,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 60,
   },
   emptyIcon: {
@@ -813,7 +773,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "600" as const,
     color: Colors.light.text,
     marginBottom: 4,
   },
@@ -829,8 +789,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   loadingState: {
+    flex: 1,
     paddingVertical: 60,
     alignItems: "center",
+    justifyContent: "center",
     gap: 10,
   },
   loadingText: {
