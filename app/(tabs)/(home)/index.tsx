@@ -229,6 +229,7 @@ export default function HomeScreen() {
           <View style={styles.heroContent}>
             <Text style={styles.greeting}>Welcome back</Text>
             <Text style={styles.heroTitle}>Dia Care</Text>
+            <Text style={styles.heroTagline}>The Diabetes Management App</Text>
             <Text style={styles.heroSubtitle}>I’m Dia — your coach & check-in buddy.</Text>
           </View>
           <View style={styles.statsRow}>
@@ -683,7 +684,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "700",
     color: "#fff",
+    marginBottom: 2,
+  },
+  heroTagline: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.75)",
     marginBottom: 6,
+    letterSpacing: 0.5,
   },
   heroSubtitle: {
     fontSize: 14,
