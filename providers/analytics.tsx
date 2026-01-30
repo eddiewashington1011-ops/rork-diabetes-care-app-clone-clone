@@ -135,7 +135,7 @@ export const [AnalyticsProvider, useAnalytics] = createContextHook<AnalyticsStat
               totalSessions: prev.totalSessions + 1,
             }));
             console.log("[analytics] New session started after long pause");
-          } else {
+          } else if (currentSessionRef.current) {
             currentSessionRef.current.endTime = undefined;
             console.log("[analytics] Session resumed");
           }
