@@ -8,6 +8,7 @@ import {
   Image,
   Modal,
   FlatList,
+  Alert,
 } from "react-native";
 import {
   Plus,
@@ -19,9 +20,14 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Calendar,
+  RotateCcw,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
-import { useWorkoutPlan, DayOfWeek } from "@/providers/workoutPlan";
+import { useWorkoutPlan, DayOfWeek, DAYS_OF_WEEK, DAY_LABELS } from "@/providers/workoutPlan";
 import { exercises, exerciseCategories, Exercise } from "@/mocks/exercises";
 
 function ExercisePickerItem({
@@ -76,29 +82,32 @@ function DayCard({
     toggleRestDay,
     getTotalDuration,
     getTotalCalories,
+    isCurrentWeek,
   } = useWorkoutPlan();
-  const [expanded, setExpanded] = useState(isToday);
+  const [expanded, setExpanded] = useState(isToday && isCurrentWeek);
 
   const dayPlan = workoutPlan[day];
   const dayExercises = getExercisesForDay(day);
   const totalDuration = getTotalDuration(day);
   const totalCalories = getTotalCalories(day);
 
+  const showToday = isToday && isCurrentWeek;
+
   return (
-    <View style={[styles.dayCard, isToday && styles.dayCardToday]}>
+    <View style={[styles.dayCard, showToday && styles.dayCardToday]}>
       <TouchableOpacity
         style={styles.dayHeader}
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.7}
       >
         <View style={styles.dayHeaderLeft}>
-          <View style={[styles.dayBadge, isToday && styles.dayBadgeToday]}>
-            <Text style={[styles.dayBadgeText, isToday && styles.dayBadgeTextToday]}>
+          <View style={[styles.dayBadge, showToday && styles.dayBadgeToday]}>
+            <Text style={[styles.dayBadgeText, showToday && styles.dayBadgeTextToday]}>
               {label.slice(0, 3)}
             </Text>
           </View>
           <View style={styles.dayInfo}>
-            <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{label}</Text>
+            <Text style={[styles.dayLabel, showToday && styles.dayLabelToday]}>{label}</Text>
             {dayPlan.restDay ? (
               <Text style={styles.restDayText}>Rest Day</Text>
             ) : dayExercises.length > 0 ? (
@@ -175,13 +184,28 @@ function DayCard({
 }
 
 export default function WorkoutPlanScreen() {
-  const { DAYS_OF_WEEK, DAY_LABELS, getCurrentDayOfWeek, addExerciseToDay, workoutPlan } =
-    useWorkoutPlan();
+  const {
+    getCurrentDayOfWeek,
+    addExerciseToDay,
+    workoutPlan,
+    selectedWeekKey,
+    isCurrentWeek,
+    weekLabel,
+    navigateWeek,
+    goToCurrentWeek,
+    copyToNextWeek,
+    clearWeek,
+    getWeeklyStats,
+    formatWeekRange,
+  } = useWorkoutPlan();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | null>(null);
   const [filterCategory, setFilterCategory] = useState("all");
+  
 
   const today = getCurrentDayOfWeek();
+  const weeklyStats = useMemo(() => getWeeklyStats(selectedWeekKey), [getWeeklyStats, selectedWeekKey]);
 
   const openExercisePicker = useCallback((day: DayOfWeek) => {
     setSelectedDay(day);
@@ -215,31 +239,97 @@ export default function WorkoutPlanScreen() {
     return workoutPlan[selectedDay]?.exerciseIds ?? [];
   }, [selectedDay, workoutPlan]);
 
-  const weeklyStats = useMemo(() => {
-    let totalWorkouts = 0;
-    let totalDuration = 0;
-    let totalCalories = 0;
-    let restDays = 0;
+  const handleCopyToNextWeek = useCallback(() => {
+    Alert.alert(
+      "Copy to Next Week",
+      "This will copy all workouts from this week to next week. Any existing workouts next week will be replaced.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Copy",
+          onPress: () => {
+            copyToNextWeek();
+          },
+        },
+      ]
+    );
+  }, [copyToNextWeek]);
 
-    DAYS_OF_WEEK.forEach((day) => {
-      const dayPlan = workoutPlan[day];
-      if (dayPlan.restDay) {
-        restDays++;
-      } else {
-        const dayExercises = dayPlan.exerciseIds
-          .map((id) => exercises.find((e) => e.id === id))
-          .filter((e): e is Exercise => e !== undefined);
-        totalWorkouts += dayExercises.length;
-        totalDuration += dayExercises.reduce((acc, e) => acc + e.duration, 0);
-        totalCalories += dayExercises.reduce((acc, e) => acc + e.caloriesBurned, 0);
-      }
-    });
-
-    return { totalWorkouts, totalDuration, totalCalories, restDays };
-  }, [workoutPlan, DAYS_OF_WEEK]);
+  const handleClearWeek = useCallback(() => {
+    Alert.alert(
+      "Clear Week",
+      "This will remove all workouts from this week. Are you sure?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: () => {
+            clearWeek();
+          },
+        },
+      ]
+    );
+  }, [clearWeek]);
 
   return (
     <View style={styles.container}>
+      <View style={styles.weekNavContainer}>
+        <View style={styles.weekNav}>
+          <TouchableOpacity
+            style={styles.weekNavButton}
+            onPress={() => navigateWeek("prev")}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={22} color={Colors.light.tint} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.weekLabelContainer}
+            onPress={goToCurrentWeek}
+            activeOpacity={0.7}
+          >
+            <Calendar size={16} color={Colors.light.tint} />
+            <View style={styles.weekLabelText}>
+              <Text style={styles.weekLabel}>{weekLabel}</Text>
+              <Text style={styles.weekRange}>{formatWeekRange(selectedWeekKey)}</Text>
+            </View>
+            {!isCurrentWeek && (
+              <View style={styles.todayBadge}>
+                <Text style={styles.todayBadgeText}>Go to today</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.weekNavButton}
+            onPress={() => navigateWeek("next")}
+            activeOpacity={0.7}
+          >
+            <ChevronRight size={22} color={Colors.light.tint} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.weekActions}>
+          <TouchableOpacity
+            style={styles.weekActionButton}
+            onPress={handleCopyToNextWeek}
+            activeOpacity={0.7}
+          >
+            <Copy size={16} color={Colors.light.tint} />
+            <Text style={styles.weekActionText}>Copy to next</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.weekActionButton, styles.weekActionButtonDanger]}
+            onPress={handleClearWeek}
+            activeOpacity={0.7}
+          >
+            <RotateCcw size={16} color={Colors.light.danger} />
+            <Text style={[styles.weekActionText, styles.weekActionTextDanger]}>Clear</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.statsCard}>
         <Text style={styles.statsTitle}>Weekly Overview</Text>
         <View style={styles.statsGrid}>
@@ -355,8 +445,89 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
+  weekNavContainer: {
+    backgroundColor: Colors.light.surface,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  weekNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  weekNavButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.light.tintLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekLabelContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  weekLabelText: {
+    alignItems: "center",
+  },
+  weekLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: Colors.light.text,
+  },
+  weekRange: {
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    marginTop: 2,
+  },
+  todayBadge: {
+    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 4,
+  },
+  todayBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  weekActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  weekActionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.light.tintLight,
+  },
+  weekActionButtonDanger: {
+    backgroundColor: Colors.light.dangerLight,
+  },
+  weekActionText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.light.tint,
+  },
+  weekActionTextDanger: {
+    color: Colors.light.danger,
+  },
   statsCard: {
     margin: 16,
+    marginBottom: 8,
     backgroundColor: Colors.light.tint,
     borderRadius: 16,
     padding: 16,
@@ -395,7 +566,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingTop: 0,
+    paddingTop: 8,
     paddingBottom: 32,
   },
   dayCard: {
