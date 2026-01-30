@@ -91,19 +91,21 @@ export default function HomeScreen() {
   const raiseTips = sugarTips.filter((t) => t.type === "raise").slice(0, 2);
 
   const todayRecipe = useMemo(() => {
+    if (!recipes || recipes.length === 0) return null;
     const now = new Date();
     const startOfYear = new Date(now.getFullYear(), 0, 0);
     const diff = now.getTime() - startOfYear.getTime();
     const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-    return recipes[dayOfYear % recipes.length];
+    return recipes[dayOfYear % recipes.length] ?? null;
   }, []);
 
   const todayExercise = useMemo(() => {
+    if (!exercises || exercises.length === 0) return null;
     const now = new Date();
     const startOfYear = new Date(now.getFullYear(), 0, 0);
     const diff = now.getTime() - startOfYear.getTime();
     const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-    return exercises[dayOfYear % exercises.length];
+    return exercises[dayOfYear % exercises.length] ?? null;
   }, []);
 
   const latest = getLatestGlucoseEntry();
@@ -585,26 +587,28 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.featuredCard}
-          onPress={() => router.push(`/(tabs)/recipes/${todayRecipe.id}`)}
-        >
-          <Image source={{ uri: todayRecipe.image }} style={styles.featuredImage} />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.8)"]}
-            style={styles.featuredOverlay}
+        {todayRecipe && (
+          <TouchableOpacity
+            style={styles.featuredCard}
+            onPress={() => router.push(`/(tabs)/recipes/${todayRecipe.id}`)}
           >
-            <View style={styles.featuredContent}>
-              <View style={styles.featuredBadge}>
-                <Text style={styles.badgeText}>
-                  {todayRecipe.carbsPerServing}g carbs
-                </Text>
+            <Image source={{ uri: todayRecipe.image }} style={styles.featuredImage} />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.8)"]}
+              style={styles.featuredOverlay}
+            >
+              <View style={styles.featuredContent}>
+                <View style={styles.featuredBadge}>
+                  <Text style={styles.badgeText}>
+                    {todayRecipe.carbsPerServing}g carbs
+                  </Text>
+                </View>
+                <Text style={styles.featuredTitle}>{todayRecipe.title}</Text>
+                <Text style={styles.featuredDesc}>{todayRecipe.description}</Text>
               </View>
-              <Text style={styles.featuredTitle}>{todayRecipe.title}</Text>
-              <Text style={styles.featuredDesc}>{todayRecipe.description}</Text>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
@@ -613,34 +617,36 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.workoutCard}
-          onPress={() => router.push(`/(tabs)/exercise/${todayExercise.id}`)}
-        >
-          <Image source={{ uri: todayExercise.image }} style={styles.workoutImage} />
-          <View style={styles.workoutContent}>
-            <Text style={styles.workoutTitle}>{todayExercise.title}</Text>
-            <Text style={styles.workoutDesc} numberOfLines={2}>
-              {todayExercise.description}
-            </Text>
-            <View style={styles.workoutMeta}>
-              <View style={styles.metaItem}>
-                <Droplets size={14} color={Colors.light.tint} />
-                <Text style={styles.metaText}>{todayExercise.duration} min</Text>
-              </View>
-              <View
-                style={[
-                  styles.intensityBadge,
-                  todayExercise.intensity === "Low" && styles.intensityLow,
-                  todayExercise.intensity === "Medium" && styles.intensityMedium,
-                  todayExercise.intensity === "High" && styles.intensityHigh,
-                ]}
-              >
-                <Text style={styles.intensityText}>{todayExercise.intensity}</Text>
+        {todayExercise && (
+          <TouchableOpacity
+            style={styles.workoutCard}
+            onPress={() => router.push(`/(tabs)/exercise/${todayExercise.id}`)}
+          >
+            <Image source={{ uri: todayExercise.image }} style={styles.workoutImage} />
+            <View style={styles.workoutContent}>
+              <Text style={styles.workoutTitle}>{todayExercise.title}</Text>
+              <Text style={styles.workoutDesc} numberOfLines={2}>
+                {todayExercise.description}
+              </Text>
+              <View style={styles.workoutMeta}>
+                <View style={styles.metaItem}>
+                  <Droplets size={14} color={Colors.light.tint} />
+                  <Text style={styles.metaText}>{todayExercise.duration} min</Text>
+                </View>
+                <View
+                  style={[
+                    styles.intensityBadge,
+                    todayExercise.intensity === "Low" && styles.intensityLow,
+                    todayExercise.intensity === "Medium" && styles.intensityMedium,
+                    todayExercise.intensity === "High" && styles.intensityHigh,
+                  ]}
+                >
+                  <Text style={styles.intensityText}>{todayExercise.intensity}</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.bottomSpacer} />
       </View>
