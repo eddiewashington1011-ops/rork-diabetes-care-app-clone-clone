@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, BookOpen, Calendar, Dumbbell, ShoppingCart, CalendarDays, Newspaper } from "lucide-react-native";
+import { Home, BookOpen, Calendar, Dumbbell, ShoppingCart, CalendarDays, Newspaper, Settings } from "lucide-react-native";
 import React from "react";
 import { Platform } from "react-native";
 
@@ -77,6 +77,13 @@ export default function TabLayout() {
         options={{
           title: "News",
           tabBarIcon: ({ color, size }) => <Newspaper color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
         }}
       />
     </Tabs>
