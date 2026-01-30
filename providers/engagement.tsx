@@ -94,8 +94,8 @@ function normalizeReminder(r: Reminder): Reminder {
   };
 }
 
-if (Platform.OS !== "web") {
-  try {
+try {
+  if (Platform.OS !== "web") {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
@@ -105,9 +105,10 @@ if (Platform.OS !== "web") {
         shouldSetBadge: false,
       }),
     });
-  } catch (e) {
-    console.warn("[engagement] Failed to set notification handler", e);
+    console.log("[engagement] Notification handler set successfully");
   }
+} catch (e) {
+  console.warn("[engagement] Failed to set notification handler - app will continue without notifications", e);
 }
 
 function parseTimeToHourMinute(time: string): { hour: number; minute: number } | null {
