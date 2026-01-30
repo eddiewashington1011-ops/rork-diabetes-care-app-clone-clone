@@ -197,14 +197,14 @@ function buildBaseItems(weekPlan: DayMealPlan[]): Omit<GroceryItem, "status">[] 
 }
 
 export const [GroceryListProvider, useGroceryList] = createContextHook<GroceryListState>(() => {
-  const { weekPlan } = useMealPlan();
-
   const [storedStatuses, setStoredStatuses] = useState<Record<string, GroceryStatus>>({});
   const [servings, setServingsState] = useState<number>(2);
   const [isHydrating, setIsHydrating] = useState<boolean>(true);
   const [lastError, setLastError] = useState<string | null>(null);
-
   const hasHydratedOnceRef = useRef<boolean>(false);
+
+  const mealPlanContext = useMealPlan();
+  const weekPlan = useMemo(() => mealPlanContext?.weekPlan ?? [], [mealPlanContext?.weekPlan]);
 
   const hydrate = useCallback(async () => {
     if (hasHydratedOnceRef.current) return;
