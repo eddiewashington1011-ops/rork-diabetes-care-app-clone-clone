@@ -9,6 +9,7 @@ import { CGMProvider } from "@/providers/cgm";
 import { MealPlanProvider } from "@/providers/mealPlan";
 import { GroceryListProvider } from "@/providers/groceryList";
 import { RecipesProvider } from "@/providers/recipes";
+import { WorkoutPlanProvider } from "@/providers/workoutPlan";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { trpc, trpcClient } from "@/lib/trpc";
 
@@ -40,7 +41,9 @@ export default function RootLayout() {
                 <MealPlanProvider>
                   <GroceryListProvider>
                     <RecipesProvider>
-                      <RootLayoutNav />
+                      <WorkoutPlanProvider>
+                        <RootLayoutNav />
+                      </WorkoutPlanProvider>
                     </RecipesProvider>
                   </GroceryListProvider>
                 </MealPlanProvider>

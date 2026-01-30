@@ -34,6 +34,12 @@ export default function ExerciseLayout() {
           title: "Video Creator",
         }}
       />
+      <Stack.Screen
+        name="workout-plan"
+        options={{
+          title: "Workout Plan",
+        }}
+      />
     </Stack>
   );
 }
