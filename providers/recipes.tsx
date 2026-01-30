@@ -245,7 +245,7 @@ function asCoachRecipeFromBase(r: Recipe): CoachRecipe {
 const AgentRecipeSchema = z
   .object({
     title: z.string().min(4).max(120),
-    description: z.string().min(10).max(500),
+    description: z.string().min(10).max(1000),
     category: z.enum(["breakfast", "lunch", "dinner", "snacks", "desserts", "teas"]),
     prepTime: z.number().int().min(0).max(90),
     cookTime: z.number().int().min(0).max(180),
@@ -509,7 +509,7 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
     `Goal: ${input.goal || "blood sugar control"}\n\n` +
     `${preferencesInstruction}\n\n` +
     "Constraints: no added sugar; limit refined carbs; include fiber; keep sodium reasonable. " +
-    "IMPORTANT: Keep description under 180 characters (2 short sentences max). " +
+    "IMPORTANT: Keep description under 800 characters (a few sentences max). " +
     "Output must include calories, carbsPerServing, fiberG, sugarG, proteinG, fatG, glycemicLoad. " +
     "Generate a complete diabetes-friendly recipe that EXACTLY matches the user's request now.";
 
@@ -537,7 +537,7 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
     return {
       recipe: {
         title: res.title.slice(0, 80),
-        description: (res.description ?? "A delicious diabetes-friendly recipe.").slice(0, 220),
+        description: (res.description ?? "A delicious diabetes-friendly recipe.").slice(0, 1000),
         category: res.category ?? "dinner",
         prepTime: res.prepTime ?? 15,
         cookTime: res.cookTime ?? 20,
