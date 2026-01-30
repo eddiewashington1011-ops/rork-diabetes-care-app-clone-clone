@@ -339,7 +339,34 @@ function buildFallbackVideoPack(recipe: CoachRecipe): ShortVideoPack {
   };
 }
 
-async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<{ videoPack: ShortVideoPack; isOffline: boolean; errorMessage?: string }> {
+async function generateHeroImage(recipe: CoachRecipe): Promise<string | null> {
+  const prompt = `Professional food photography of ${recipe.title}, perfectly plated on elegant ceramic dish, soft diffused lighting from side, shallow depth of field with blurred background, garnished with fresh herbs, steam gently rising, warm inviting color palette, restaurant quality presentation, diabetes-friendly healthy meal, appetizing and delicious looking, high-end culinary photography style`;
+  
+  console.log("[recipes] generateHeroImage: generating image for", recipe.title);
+  
+  try {
+    const response = await fetch("https://toolkit.rork.com/images/generate/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, size: "1024x1024" }),
+    });
+    
+    if (!response.ok) {
+      console.error("[recipes] generateHeroImage: failed to generate", { status: response.status });
+      return null;
+    }
+    
+    const data = await response.json();
+    const imageUri = `data:${data.image.mimeType};base64,${data.image.base64Data}`;
+    console.log("[recipes] generateHeroImage: success");
+    return imageUri;
+  } catch (e) {
+    console.error("[recipes] generateHeroImage: error", e);
+    return null;
+  }
+}
+
+async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<{ videoPack: ShortVideoPack; isOffline: boolean; errorMessage?: string; generatedImage?: string }> {
   const system = buildVideoPackPrompt();
   const userPrompt =
     `${system}\n\n` +
@@ -355,13 +382,19 @@ async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<{ videoPack:
 
   console.log("[recipes] agentGenerateVideoPack: calling generateObject", { title: recipe.title });
 
+  let generatedImage: string | null = null;
+  
   try {
-    const res = await generateObject({
-      messages: [{ role: "user", content: userPrompt }],
-      schema: VideoPackSchema,
-    });
+    const [res, heroImage] = await Promise.all([
+      generateObject({
+        messages: [{ role: "user", content: userPrompt }],
+        schema: VideoPackSchema,
+      }),
+      generateHeroImage(recipe),
+    ]);
 
-    console.log("[recipes] agentGenerateVideoPack: got response", { shots: res.verticalStoryboard.length });
+    generatedImage = heroImage;
+    console.log("[recipes] agentGenerateVideoPack: got response", { shots: res.verticalStoryboard.length, hasImage: !!heroImage });
 
     return {
       videoPack: {
@@ -372,17 +405,26 @@ async function agentGenerateVideoPack(recipe: CoachRecipe): Promise<{ videoPack:
         autoCaptions: res.autoCaptions,
         cta: res.cta,
         hashtags: res.hashtags,
+        generatedHeroImage: heroImage ?? undefined,
       },
       isOffline: false,
+      generatedImage: heroImage ?? undefined,
     };
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : String(e);
     const isOffline = isNetworkOrOfflineError(errorMessage);
     console.error("[recipes] agentGenerateVideoPack: AI call failed; using fallback", { error: errorMessage, isOffline });
+    
+    const fallbackPack = buildFallbackVideoPack(recipe);
+    if (generatedImage) {
+      fallbackPack.generatedHeroImage = generatedImage;
+    }
+    
     return {
-      videoPack: buildFallbackVideoPack(recipe),
+      videoPack: fallbackPack,
       isOffline: true,
       errorMessage: isOffline ? "Dia is offline" : errorMessage,
+      generatedImage: generatedImage ?? undefined,
     };
   }
 }
@@ -824,15 +866,15 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
         return null;
       }
 
-      if (recipe.shortVideoPack) {
-        console.log("[recipes] generateVideoPack: already has video pack", { id });
+      if (recipe.shortVideoPack?.generatedHeroImage) {
+        console.log("[recipes] generateVideoPack: already has video pack with image", { id });
         return recipe.shortVideoPack;
       }
 
       console.log("[recipes] generateVideoPack:start", { id, title: recipe.title });
       setLastError(null);
 
-      const { videoPack, isOffline, errorMessage } = await agentGenerateVideoPack(recipe);
+      const { videoPack, isOffline, errorMessage, generatedImage } = await agentGenerateVideoPack(recipe);
 
       if (isOffline) {
         const msg = errorMessage
@@ -845,6 +887,7 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
       const updated: CoachRecipe = {
         ...recipe,
         shortVideoPack: videoPack,
+        image: generatedImage || recipe.image,
         source: "saved",
       };
 
@@ -854,7 +897,7 @@ export const [RecipesProvider, useRecipes] = createContextHook<RecipesState>(() 
         return next;
       });
 
-      console.log("[recipes] generateVideoPack:done", { id, isOffline });
+      console.log("[recipes] generateVideoPack:done", { id, isOffline, hasNewImage: !!generatedImage });
       return videoPack;
     },
     [getRecipeById, persist],

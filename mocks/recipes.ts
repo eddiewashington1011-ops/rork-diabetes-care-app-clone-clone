@@ -15,6 +15,7 @@ export interface ShortVideoPack {
   autoCaptions: string[];
   cta: string;
   hashtags: string[];
+  generatedHeroImage?: string;
 }
 
 export interface Recipe {
