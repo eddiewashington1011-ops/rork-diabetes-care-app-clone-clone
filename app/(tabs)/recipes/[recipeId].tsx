@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { BottomCTA } from "@/components/BottomCTA";
-import { Clock, Users, Flame, Wheat, Sparkles, Trash2, Video, Camera, Hash, MessageSquare, Play, Copy, Check } from "lucide-react-native";
+import { Clock, Users, Flame, Wheat, Sparkles, Trash2, Video, Camera, Hash, MessageSquare, Play, Copy, Check, ImageIcon, RefreshCw } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { useRecipes } from "@/providers/recipes";
 import * as Clipboard from "expo-clipboard";
+import { categorizeIngredients, getIngredientImagePrompt } from "@/lib/ingredientCategories";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
@@ -25,8 +27,98 @@ export default function RecipeDetailScreen() {
   const [isGeneratingVideo, setIsGeneratingVideo] = useState<boolean>(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [ingredientImages, setIngredientImages] = useState<Record<string, string>>({});
+  const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
+  const [isGeneratingAllImages, setIsGeneratingAllImages] = useState<boolean>(false);
 
   const recipe = useMemo(() => getRecipeById(recipeId), [getRecipeById, recipeId]);
+
+  const categorizedIngredients = useMemo(() => {
+    if (!recipe) return [];
+    return categorizeIngredients(recipe.ingredients);
+  }, [recipe]);
+
+  useEffect(() => {
+    const loadStoredImages = async () => {
+      if (!recipeId) return;
+      try {
+        const stored = await AsyncStorage.getItem(`ingredient_images_${recipeId}`);
+        if (stored) {
+          setIngredientImages(JSON.parse(stored));
+        }
+      } catch (err) {
+        console.log("[RecipeDetail] Failed to load stored images", err);
+      }
+    };
+    loadStoredImages();
+  }, [recipeId]);
+
+  const saveImagesToStorage = useCallback(async (images: Record<string, string>) => {
+    if (!recipeId) return;
+    try {
+      await AsyncStorage.setItem(`ingredient_images_${recipeId}`, JSON.stringify(images));
+    } catch (err) {
+      console.log("[RecipeDetail] Failed to save images", err);
+    }
+  }, [recipeId]);
+
+  const generateIngredientImage = useCallback(async (ingredientName: string) => {
+    if (generatingImages.has(ingredientName)) return;
+    
+    console.log("[RecipeDetail] Generating image for:", ingredientName);
+    setGeneratingImages(prev => new Set(prev).add(ingredientName));
+    
+    try {
+      const prompt = getIngredientImagePrompt(ingredientName);
+      const response = await fetch("https://toolkit.rork.com/images/generate/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, size: "1024x1024" }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to generate image");
+      
+      const data = await response.json();
+      const imageUri = `data:${data.image.mimeType};base64,${data.image.base64Data}`;
+      
+      setIngredientImages(prev => {
+        const updated = { ...prev, [ingredientName]: imageUri };
+        saveImagesToStorage(updated);
+        return updated;
+      });
+    } catch (err) {
+      console.log("[RecipeDetail] Failed to generate image:", err);
+    } finally {
+      setGeneratingImages(prev => {
+        const next = new Set(prev);
+        next.delete(ingredientName);
+        return next;
+      });
+    }
+  }, [generatingImages, saveImagesToStorage]);
+
+  const generateAllMissingImages = useCallback(async () => {
+    if (isGeneratingAllImages) return;
+    setIsGeneratingAllImages(true);
+    
+    const allIngredients: string[] = [];
+    categorizedIngredients.forEach(cat => {
+      cat.ingredients.forEach(ing => {
+        if (!ingredientImages[ing.name]) {
+          allIngredients.push(ing.name);
+        }
+      });
+    });
+    
+    console.log("[RecipeDetail] Generating images for:", allIngredients.length, "ingredients");
+    
+    for (const name of allIngredients) {
+      await generateIngredientImage(name);
+    }
+    
+    setIsGeneratingAllImages(false);
+    Alert.alert("Done!", "All ingredient images have been generated.");
+  }, [categorizedIngredients, ingredientImages, isGeneratingAllImages, generateIngredientImage]);
 
   console.log("[RecipeDetail] open", { recipeId, found: Boolean(recipe), source: recipe?.source });
 
@@ -272,11 +364,70 @@ export default function RecipeDetailScreen() {
         ) : null}
 
         <View style={styles.section} testID="recipe-ingredients">
-          <Text style={styles.sectionTitle}>Ingredients</Text>
-          {recipe.ingredients.map((ingredient, index) => (
-            <View key={String(index)} style={styles.ingredientRow}>
-              <View style={styles.bullet} />
-              <Text style={styles.ingredientText}>{ingredient}</Text>
+          <View style={styles.ingredientsSectionHeader}>
+            <Text style={styles.sectionTitle}>Ingredients</Text>
+            <TouchableOpacity
+              style={styles.generateAllButton}
+              onPress={generateAllMissingImages}
+              disabled={isGeneratingAllImages}
+              activeOpacity={0.8}
+            >
+              {isGeneratingAllImages ? (
+                <ActivityIndicator size="small" color={Colors.light.tint} />
+              ) : (
+                <ImageIcon size={16} color={Colors.light.tint} />
+              )}
+              <Text style={styles.generateAllText}>
+                {isGeneratingAllImages ? "Generating..." : "Generate Images"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {categorizedIngredients.map((category) => (
+            <View key={category.id} style={styles.categorySection}>
+              <View style={[styles.categoryHeader, { borderLeftColor: category.color }]}>
+                <Text style={styles.categoryIcon}>{category.icon}</Text>
+                <Text style={styles.categoryName}>{category.name}</Text>
+                <Text style={styles.categoryCount}>{category.ingredients.length}</Text>
+              </View>
+              <View style={styles.ingredientsGrid}>
+                {category.ingredients.map((ingredient, idx) => (
+                  <TouchableOpacity
+                    key={`${category.id}-${idx}`}
+                    style={styles.ingredientCard}
+                    onPress={() => generateIngredientImage(ingredient.name)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.ingredientImageContainer, { borderColor: category.color + '40' }]}>
+                      {ingredientImages[ingredient.name] ? (
+                        <Image
+                          source={{ uri: ingredientImages[ingredient.name] }}
+                          style={styles.ingredientImage}
+                          resizeMode="cover"
+                        />
+                      ) : generatingImages.has(ingredient.name) ? (
+                        <ActivityIndicator size="small" color={category.color} />
+                      ) : (
+                        <View style={styles.placeholderImage}>
+                          <ImageIcon size={20} color={Colors.light.textSecondary} />
+                        </View>
+                      )}
+                      {ingredientImages[ingredient.name] && (
+                        <TouchableOpacity
+                          style={styles.refreshImageButton}
+                          onPress={() => generateIngredientImage(ingredient.name)}
+                          disabled={generatingImages.has(ingredient.name)}
+                        >
+                          <RefreshCw size={10} color="#fff" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <Text style={styles.ingredientCardText} numberOfLines={2}>
+                      {ingredient.original}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           ))}
         </View>
@@ -744,6 +895,101 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.text,
     lineHeight: 20,
+  },
+  ingredientsSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  generateAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.light.tintLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  generateAllText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.tint,
+  },
+  categorySection: {
+    marginBottom: 20,
+  },
+  categoryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingLeft: 12,
+    borderLeftWidth: 3,
+    marginBottom: 12,
+  },
+  categoryIcon: {
+    fontSize: 18,
+  },
+  categoryName: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+    color: Colors.light.text,
+    flex: 1,
+  },
+  categoryCount: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.light.textSecondary,
+    backgroundColor: Colors.light.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  ingredientsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  ingredientCard: {
+    width: "31%",
+    minWidth: 95,
+    alignItems: "center",
+  },
+  ingredientImageContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    marginBottom: 6,
+  },
+  ingredientImage: {
+    width: "100%",
+    height: "100%",
+  },
+  placeholderImage: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  refreshImageButton: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ingredientCardText: {
+    fontSize: 11,
+    color: Colors.light.text,
+    textAlign: "center",
+    lineHeight: 14,
   },
   ingredientRow: {
     flexDirection: "row",
