@@ -203,8 +203,17 @@ export const [GroceryListProvider, useGroceryList] = createContextHook<GroceryLi
   const [lastError, setLastError] = useState<string | null>(null);
   const hasHydratedOnceRef = useRef<boolean>(false);
 
-  const mealPlanContext = useMealPlan();
-  const weekPlan = useMemo(() => mealPlanContext?.weekPlan ?? [], [mealPlanContext?.weekPlan]);
+  let mealPlanContext: ReturnType<typeof useMealPlan> | null = null;
+  try {
+    mealPlanContext = useMealPlan();
+  } catch (e) {
+    console.error("[groceryList] useMealPlan failed", e);
+  }
+
+  const weekPlan = useMemo<DayMealPlan[]>(() => {
+    if (!mealPlanContext || !mealPlanContext.weekPlan) return [];
+    return mealPlanContext.weekPlan;
+  }, [mealPlanContext]);
 
   const hydrate = useCallback(async () => {
     if (hasHydratedOnceRef.current) return;

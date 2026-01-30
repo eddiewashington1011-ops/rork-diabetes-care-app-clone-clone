@@ -495,6 +495,8 @@ function isNetworkOrOfflineError(error: string): boolean {
 }
 
 async function agentGenerateRecipe(input: { goal: string; preferences: string }): Promise<{ recipe: Omit<CoachRecipe, "id" | "image" | "source">; isOffline: boolean; errorMessage?: string }> {
+  console.log("[recipes] agentGenerateRecipe: starting", { goal: input.goal, prefsLen: input.preferences.length });
+  
   const system = buildAgentSystemPrompt();
   
   const hasPreferences = input.preferences.trim().length > 0;
@@ -520,28 +522,37 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
       schema: AgentRecipeSchema,
     });
 
-    console.log("[recipes] agentGenerateRecipe: got response", { title: res.title });
+    console.log("[recipes] agentGenerateRecipe: got response", { title: res?.title });
+
+    if (!res || !res.title) {
+      console.error("[recipes] agentGenerateRecipe: invalid response, using fallback");
+      return {
+        recipe: localFallbackRecipe(input),
+        isOffline: true,
+        errorMessage: "Invalid response from AI",
+      };
+    }
 
     return {
       recipe: {
         title: res.title,
-        description: res.description,
-        category: res.category,
-        prepTime: res.prepTime,
-        cookTime: res.cookTime,
-        servings: res.servings,
-        calories: res.calories,
-        carbsPerServing: res.carbsPerServing,
-        ingredients: res.ingredients,
-        instructions: res.instructions,
-        tags: res.tags,
-        glycemicNotes: res.glycemicNotes,
-        fiberG: res.fiberG,
-        sugarG: res.sugarG,
-        proteinG: res.proteinG,
-        fatG: res.fatG,
-        glycemicLoad: res.glycemicLoad,
-        skillLevel: res.skillLevel,
+        description: res.description ?? "A delicious diabetes-friendly recipe.",
+        category: res.category ?? "dinner",
+        prepTime: res.prepTime ?? 15,
+        cookTime: res.cookTime ?? 20,
+        servings: res.servings ?? 2,
+        calories: res.calories ?? 350,
+        carbsPerServing: res.carbsPerServing ?? 25,
+        ingredients: res.ingredients ?? ["See full recipe"],
+        instructions: res.instructions ?? ["Follow the recipe steps"],
+        tags: res.tags ?? ["diabetes-friendly"],
+        glycemicNotes: res.glycemicNotes ?? ["Low glycemic load"],
+        fiberG: res.fiberG ?? 5,
+        sugarG: res.sugarG ?? 3,
+        proteinG: res.proteinG ?? 20,
+        fatG: res.fatG ?? 12,
+        glycemicLoad: res.glycemicLoad ?? 10,
+        skillLevel: res.skillLevel ?? "easy",
         origin: "Dia",
       },
       isOffline: false,
