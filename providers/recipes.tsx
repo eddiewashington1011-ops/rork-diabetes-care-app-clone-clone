@@ -535,8 +535,8 @@ async function agentGenerateRecipe(input: { goal: string; preferences: string })
 
     return {
       recipe: {
-        title: res.title,
-        description: res.description ?? "A delicious diabetes-friendly recipe.",
+        title: res.title.slice(0, 80),
+        description: (res.description ?? "A delicious diabetes-friendly recipe.").slice(0, 220),
         category: res.category ?? "dinner",
         prepTime: res.prepTime ?? 15,
         cookTime: res.cookTime ?? 20,
