@@ -12,7 +12,7 @@ import {
   Animated,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
-import { Send, Video, Sparkles, Copy, Check, Camera, Play, Hash, MessageSquare, Dumbbell } from "lucide-react-native";
+import { Send, Sparkles, Copy, Check, Camera, Play, Hash, MessageSquare, Dumbbell, Zap, TrendingUp, Music } from "lucide-react-native";
 import { createRorkTool, useRorkAgent } from "@rork-ai/toolkit-sdk";
 import * as z from "zod";
 import * as Clipboard from "expo-clipboard";
@@ -34,7 +34,7 @@ type StoryboardShot = {
 };
 
 type GeneratedContent = {
-  type: "script" | "storyboard" | "prompts" | "captions" | "full_pack";
+  type: "script" | "storyboard" | "prompts" | "captions" | "full_pack" | "instant_pack";
   data: {
     videoScript?: VideoScriptScene[];
     verticalStoryboard?: StoryboardShot[];
@@ -43,8 +43,32 @@ type GeneratedContent = {
     autoCaptions?: string[];
     hashtags?: string[];
     cta?: string;
+    viralHooks?: string[];
+    trendingSounds?: string[];
+    bRollSuggestions?: string[];
   };
 };
+
+const VIRAL_HOOKS = [
+  "POV: Your blood sugar after this {EXERCISE}",
+  "The workout that changed my diabetes management",
+  "Doctor said move more... I chose violence 💪",
+  "This {EXERCISE} hits different when you're diabetic",
+  "Stop scrolling and try this with me",
+  "The exercise my endocrinologist recommended",
+  "30 days of this changed everything",
+  "Wait for the calorie burn... 🔥",
+];
+
+const TRENDING_SOUNDS = [
+  "Eye of the Tiger - Survivor (for motivation)",
+  "Workout motivation - Original Audio",
+  "Level Up - Ciara (for transitions)",
+  "Push it - Salt-N-Pepa (classic)",
+  "Stronger - Kanye West (for intensity)",
+  "That workout sound - Trending 2024",
+  "Gym motivation mix - Popular",
+];
 
 export default function ExerciseVideoAgentScreen() {
   const { exerciseId } = useLocalSearchParams<{ exerciseId: string }>();
@@ -73,22 +97,40 @@ export default function ExerciseVideoAgentScreen() {
       generateVideoScript: createRorkTool({
         description: "Generate a time-coded video script for a short-form workout video (30-60 seconds). Use this when the user wants to create a video script or plan video content.",
         zodSchema: z.object({
-          style: z.enum(["fast-paced", "educational", "motivational", "cinematic"]).describe("The style of the video"),
+          style: z.enum(["fast-paced", "educational", "motivational", "cinematic", "viral"]).describe("The style of the video"),
           duration: z.number().min(15).max(90).describe("Target video duration in seconds"),
           focusArea: z.string().optional().describe("What to emphasize: form demonstration, benefits, modifications, etc."),
         }),
         execute: (toolInput) => {
           console.log("[ExerciseVideoAgent] generateVideoScript called", toolInput);
-          const script: VideoScriptScene[] = [
-            { timecode: "[00:00-00:03]", content: `Hook: Dynamic intro showing ${exercise?.title ?? "the workout"} in action` },
-            { timecode: "[00:03-00:08]", content: "Quick benefits overlay - diabetes-friendly exercise" },
-            { timecode: "[00:08-00:18]", content: `${toolInput.style === "fast-paced" ? "Quick cuts of" : "Smooth demonstration of"} proper form` },
-            { timecode: "[00:18-00:30]", content: "Main exercise demonstration with form tips" },
-            { timecode: "[00:30-00:40]", content: "Common mistakes vs correct form comparison" },
-            { timecode: "[00:40-00:50]", content: "Modification options + stats overlay" },
-            { timecode: "[00:50-00:60]", content: "CTA with motivational ending shot" },
+          const title = exercise?.title ?? "the workout";
+          const viralHook = VIRAL_HOOKS[Math.floor(Math.random() * VIRAL_HOOKS.length)]?.replace("{EXERCISE}", title) ?? "";
+          
+          const script: VideoScriptScene[] = toolInput.style === "viral" ? [
+            { timecode: "[00:00-00:02]", content: `HOOK: "${viralHook}" - Dynamic action teaser` },
+            { timecode: "[00:02-00:05]", content: "Quick stats flash: calories, duration, intensity" },
+            { timecode: "[00:05-00:08]", content: "3-2-1 countdown with energy build" },
+            { timecode: "[00:08-00:18]", content: "Full speed demonstration with beat sync" },
+            { timecode: "[00:18-00:23]", content: "Form check close-up with text tips" },
+            { timecode: "[00:23-00:27]", content: "Intensity variation: easy/medium/hard" },
+            { timecode: "[00:27-00:30]", content: "Power pose finish + sweat shot + CTA" },
+          ] : [
+            { timecode: "[00:00-00:03]", content: `Hook: "${viralHook}" - Dynamic intro showing ${title} in action` },
+            { timecode: "[00:03-00:08]", content: `Quick benefits overlay - burns ${exercise?.caloriesBurned ?? 100} cal, ${exercise?.intensity ?? "medium"} intensity` },
+            { timecode: "[00:08-00:18]", content: `${toolInput.style === "fast-paced" ? "Quick cuts of" : "Smooth demonstration of"} proper form with callouts` },
+            { timecode: "[00:18-00:30]", content: "Main exercise demonstration with form tips on screen" },
+            { timecode: "[00:30-00:40]", content: "Common mistakes vs correct form split-screen" },
+            { timecode: "[00:40-00:50]", content: "Modification options: beginner/intermediate/advanced" },
+            { timecode: "[00:50-00:60]", content: "CTA with motivational power pose and stats recap" },
           ];
-          setGeneratedContent({ type: "script", data: { videoScript: script } });
+          setGeneratedContent({ 
+            type: "script", 
+            data: { 
+              videoScript: script,
+              viralHooks: [viralHook],
+              trendingSounds: TRENDING_SOUNDS.slice(0, 3),
+            } 
+          });
           return JSON.stringify({ success: true, scenes: script.length, style: toolInput.style });
         },
       }),
@@ -97,20 +139,42 @@ export default function ExerciseVideoAgentScreen() {
         description: "Generate a detailed shot-by-shot storyboard for vertical workout video (9:16). Use when user wants camera angles, shot types, or visual planning.",
         zodSchema: z.object({
           shotCount: z.number().min(6).max(12).describe("Number of shots to generate"),
-          cameraStyle: z.enum(["overhead", "dynamic", "handheld", "tripod"]).describe("Primary camera style"),
+          cameraStyle: z.enum(["overhead", "dynamic", "handheld", "tripod", "cinematic"]).describe("Primary camera style"),
         }),
         execute: (toolInput) => {
           console.log("[ExerciseVideoAgent] generateStoryboard called", toolInput);
-          const angles = ["full-body", "close-up", "45-degree", "eye-level", "slow-mo", "tracking"];
-          const shots: StoryboardShot[] = Array.from({ length: toolInput.shotCount }, (_, i) => ({
-            shotNumber: i + 1,
-            duration: `${2 + Math.floor(Math.random() * 3)}s`,
-            angle: angles[i % angles.length] ?? "full-body",
-            action: i === 0 ? "Dynamic intro pose" : i === toolInput.shotCount - 1 ? "Motivational end pose" : `Exercise step ${i}`,
-            onScreenText: i === 0 ? exercise?.title ?? "Workout" : i === 1 ? `${exercise?.caloriesBurned ?? 100} cal burn` : "",
-            soundCue: i === 0 ? "Music drop" : ["exhale", "count", "beat", "transition"][i % 4] ?? "ambient",
-          }));
-          setGeneratedContent({ type: "storyboard", data: { verticalStoryboard: shots } });
+          const title = exercise?.title ?? "Workout";
+          
+          const cinematicShots: StoryboardShot[] = [
+            { shotNumber: 1, duration: "2s", angle: "low angle silhouette", action: "Dramatic intro pose against light", onScreenText: "", soundCue: "Bass build" },
+            { shotNumber: 2, duration: "3s", angle: "medium full-body", action: `Title card: "${title}" with stats`, onScreenText: `${title}`, soundCue: "Beat drop" },
+            { shotNumber: 3, duration: "2s", angle: "close-up face", action: "Determined expression, deep breath", onScreenText: `${exercise?.caloriesBurned ?? 100} cal`, soundCue: "Inhale" },
+            { shotNumber: 4, duration: "5s", angle: "tracking side", action: "Full movement demonstration at speed", onScreenText: "", soundCue: "Beat sync" },
+            { shotNumber: 5, duration: "3s", angle: "overhead 45°", action: "Form highlight with visual guides", onScreenText: "Form tip", soundCue: "Callout" },
+            { shotNumber: 6, duration: "4s", angle: "front medium", action: "Rep count with intensity building", onScreenText: "3...2...1", soundCue: "Count" },
+            { shotNumber: 7, duration: "3s", angle: "close-up muscle", action: "Muscle engagement detail shot", onScreenText: "", soundCue: "Effort" },
+            { shotNumber: 8, duration: "3s", angle: "slow-mo wide", action: "Peak movement moment", onScreenText: "", soundCue: "Slow build" },
+            { shotNumber: 9, duration: "2s", angle: "reaction close-up", action: "Sweat/determination shot", onScreenText: `${exercise?.intensity ?? "Medium"}`, soundCue: "Push" },
+            { shotNumber: 10, duration: "3s", angle: "hero pose", action: "Power finish + fist pump", onScreenText: "You got this! 💪", soundCue: "Finale" },
+          ];
+          
+          const bRoll = [
+            "Water bottle being grabbed/drunk",
+            "Towel wipe across forehead",
+            "Timer/stopwatch close-up",
+            "Sneakers hitting floor",
+            "Deep breathing recovery",
+            "Fist clench determination",
+          ];
+          
+          const shots = cinematicShots.slice(0, toolInput.shotCount);
+          setGeneratedContent({ 
+            type: "storyboard", 
+            data: { 
+              verticalStoryboard: shots,
+              bRollSuggestions: bRoll,
+            } 
+          });
           return JSON.stringify({ success: true, shots: shots.length, style: toolInput.cameraStyle });
         },
       }),
@@ -118,23 +182,34 @@ export default function ExerciseVideoAgentScreen() {
       generateAIVideoPrompts: createRorkTool({
         description: "Generate prompts for AI video tools like Runway, Sora, Pika, or Luma. Use when user wants to create AI-generated workout video clips.",
         zodSchema: z.object({
-          tool: z.enum(["runway", "sora", "pika", "luma", "generic"]).describe("Target AI video tool"),
+          tool: z.enum(["runway", "sora", "pika", "luma", "kling", "generic"]).describe("Target AI video tool"),
           promptCount: z.number().min(3).max(10).describe("Number of prompts to generate"),
         }),
         execute: (toolInput) => {
           console.log("[ExerciseVideoAgent] generateAIVideoPrompts called", toolInput);
           const title = exercise?.title ?? "workout exercise";
+          
+          const toolSpecificParams = {
+            runway: "cinematic motion, smooth camera movement, gen-3 alpha quality",
+            sora: "photorealistic, natural motion, consistent lighting throughout",
+            pika: "stylized motion, creative transitions, dynamic camera",
+            luma: "dream machine quality, fluid motion, cinematic depth",
+            kling: "hyper-realistic, professional cinematography, 4K detail",
+            generic: "high quality, smooth motion, professional lighting",
+          };
+          
           const prompts = [
-            `Cinematic shot of person performing ${title}, athletic wear, gym setting, professional fitness photography lighting, 9:16 vertical format, 4K quality`,
-            `Close-up of proper form during ${title}, focused expression, shallow depth of field, motivational fitness aesthetic`,
-            `Smooth tracking shot of athlete doing ${title}, modern gym background, dynamic camera movement, vertical format`,
-            `Eye-level shot of full body ${title} demonstration, clean minimal gym, bright natural lighting, professional fitness video`,
-            `Slow motion capture of key movement in ${title}, sweat droplets visible, dramatic lighting, inspiring workout aesthetic`,
-            `45-degree angle of trainer demonstrating ${title}, encouraging expression, premium gym environment, vertical video`,
-            `Wide to close transition shot of ${title}, showing full movement then form detail, fitness content style`,
+            `[HOOK SHOT] Athletic person in dramatic silhouette pose, backlit against bright window, about to start ${title}, anticipation builds, camera slowly reveals, 9:16 vertical, ${toolSpecificParams[toolInput.tool]}`,
+            `[POWER INTRO] Confident athlete performing ${title} from low angle, powerful stance, modern gym with dramatic lighting, determination in eyes, professional fitness content, ${toolSpecificParams[toolInput.tool]}`,
+            `[FORM DEMO] Side tracking shot following perfect ${title} form, muscle definition visible, smooth continuous movement, gym mirrors in background, instructional fitness aesthetic, ${toolSpecificParams[toolInput.tool]}`,
+            `[INTENSITY BUILD] Close-up of focused face during peak ${title} effort, sweat visible, jaw set with determination, rack focus to full body movement, motivational energy, ${toolSpecificParams[toolInput.tool]}`,
+            `[SLOW-MO GLORY] Slow motion capture of ${title} peak movement moment, sweat droplets flying, muscles engaged, dramatic side lighting creating definition, epic fitness moment, ${toolSpecificParams[toolInput.tool]}`,
+            `[REP COUNT] Front-facing ${title} demonstration with visible rep counting overlay position, eye contact with camera, encouraging expression, relatable fitness content, ${toolSpecificParams[toolInput.tool]}`,
+            `[MUSCLE DETAIL] Macro close-up of muscles engaging during ${title}, skin texture and definition visible, camera pulls back to full movement, anatomy appreciation, ${toolSpecificParams[toolInput.tool]}`,
+            `[VICTORY POSE] Triumphant finish pose after completing ${title}, fist pump or arms raised, sweat glistening, satisfied accomplished expression, inspiring ending, ${toolSpecificParams[toolInput.tool]}`,
           ].slice(0, toolInput.promptCount);
           
-          const heroPrompt = `Professional fitness photography of athlete performing ${title}, perfect form demonstration, modern gym with natural lighting, athletic wear, sweat glistening, determined focused expression, shallow depth of field, inspiring motivational mood, 9:16 vertical, makes viewer want to workout, ${toolInput.tool === "runway" ? "cinematic motion" : "hyper-realistic"}`;
+          const heroPrompt = `[THUMBNAIL HERO] Professional fitness photography masterpiece of athlete mid-${title}, perfect form captured at peak movement, dramatic Rembrandt lighting from side, sweat glistening catching light, modern minimal gym background with depth blur, determined powerful expression, athletic wear, ultra shallow depth of field, 9:16 vertical composition, makes viewer immediately want to workout, ${toolSpecificParams[toolInput.tool]}, award-winning sports photography`;
           
           setGeneratedContent({ 
             type: "prompts", 
@@ -152,30 +227,72 @@ export default function ExerciseVideoAgentScreen() {
         }),
         execute: (toolInput) => {
           console.log("[ExerciseVideoAgent] generateCaptionsAndHashtags called", toolInput);
-          const captions = [
-            `${exercise?.title ?? "This workout"} - burns ${exercise?.caloriesBurned ?? 100} calories! 🔥`,
-            "Perfect for managing blood sugar levels 💪",
-            `Only ${exercise?.duration ?? 20} minutes needed!`,
-            `${exercise?.intensity ?? "Medium"} intensity - you got this!`,
-            "Diabetes-friendly workout routine 💚",
-            "Save this for your next workout session!",
-          ];
+          const title = exercise?.title ?? "This workout";
+          const cals = exercise?.caloriesBurned ?? 100;
+          const duration = exercise?.duration ?? 20;
+          const intensity = exercise?.intensity ?? "Medium";
           
-          const hashtags = toolInput.platform === "tiktok" 
-            ? ["#diabetesfitness", "#workoutwithme", "#fitnesstok", "#diabetesawareness", "#homeworkout", "#lowimpact", "#healthylifestyle"]
-            : toolInput.platform === "instagram"
-            ? ["#diabetesfitness", "#workoutmotivation", "#fitnessfirst", "#diabeteslife", "#exerciseroutine", "#healthyhabits", "#fitnessjourney"]
-            : ["#diabetesfitness", "#workout", "#exercise", "#bloodsugarcontrol", "#diabetesfriendly", "#fitnessroutine", "#healthyliving"];
+          const platformCaptions = {
+            tiktok: [
+              `POV: Your blood sugar after ${title} 📉💚`,
+              `${cals} calories didn't stand a chance 🔥`,
+              "My glucose monitor loves this workout",
+              `${duration} mins is all you need fr`,
+              "The way this stabilizes blood sugar >>>>",
+              "Diabetic fitness check ✅",
+            ],
+            instagram: [
+              `${title} — ${cals} calories of progress 💪`,
+              `${duration} minutes | ${intensity} intensity | Diabetes-approved`,
+              "Moving my body, managing my health",
+              "Blood sugar friendly fitness at its finest",
+              "Consistency over perfection 💚",
+              "Save this for your next workout 📌",
+            ],
+            youtube: [
+              `${title} - Diabetes-Friendly Workout (${cals} Calories!)`,
+              `${duration}-Minute ${intensity} Workout | Blood Sugar Safe`,
+              "Exercise That Actually Helps Blood Sugar",
+              "Low Impact, High Results Workout",
+              "Perfect for Type 2 Diabetes Management",
+              "Doctor-Recommended Exercise Routine",
+            ],
+            all: [
+              `${title} — ${cals} cal burn 🔥`,
+              `${duration} mins of diabetes-friendly movement`,
+              `${intensity} intensity, maximum results`,
+              "Your blood sugar will thank you",
+              "Fitness that works WITH your body",
+              "Save • Share • Sweat 💪",
+            ],
+          };
           
-          const cta = toolInput.tone === "fun" 
-            ? "Try this and tag me! 💪🔥"
-            : toolInput.tone === "educational"
-            ? "Save for your next workout 📌"
-            : "Follow for more diabetes-friendly workouts!";
+          const platformHashtags = {
+            tiktok: ["#diabetesfitness", "#workoutwithme", "#fitnesstok", "#diabetesawareness", "#homeworkout", "#bloodsugar", "#fyp", "#viral", "#healthytok", "#type2diabetes"],
+            instagram: ["#diabetesfitness", "#workoutmotivation", "#fitnessfirst", "#diabeteslife", "#exerciseroutine", "#healthyhabits", "#fitnessjourney", "#diabeticfitness", "#bloodsugarcontrol", "#fitnessgram"],
+            youtube: ["#diabetesworkout", "#fitness", "#homeworkout", "#diabetesfriendly", "#exercise", "#healthylifestyle", "#bloodsugar"],
+            all: ["#diabetesfitness", "#workout", "#exercise", "#bloodsugarcontrol", "#diabetesfriendly", "#fitnessroutine", "#healthyliving", "#diabetesawareness"],
+          };
+          
+          const platformCTAs = {
+            tiktok: { fun: "Duet this and show me your form! 💪", educational: "Follow for daily diabetes workouts 📌", trendy: "Comment 'WORKOUT' for more routines 👇", professional: "Follow for diabetes-friendly fitness" },
+            instagram: { fun: "Tag your workout buddy! 👯", educational: "Save this for your morning routine 📌", trendy: "Drop a 💪 if you're trying this!", professional: "Link in bio for full workout plan" },
+            youtube: { fun: "SMASH subscribe for more workouts! 🔔", educational: "Subscribe for weekly diabetes fitness", trendy: "Comment your calorie burn below! 👇", professional: "Subscribe for more diabetes-safe workouts" },
+            all: { fun: "Try this and tag me! 💪🔥", educational: "Save for your next workout 📌", trendy: "Share with someone who needs this!", professional: "Follow for diabetes-friendly workouts" },
+          };
+          
+          const captions = platformCaptions[toolInput.platform];
+          const hashtags = platformHashtags[toolInput.platform];
+          const cta = platformCTAs[toolInput.platform][toolInput.tone];
           
           setGeneratedContent({ 
             type: "captions", 
-            data: { autoCaptions: captions, hashtags, cta } 
+            data: { 
+              autoCaptions: captions, 
+              hashtags, 
+              cta,
+              viralHooks: VIRAL_HOOKS.slice(0, 3).map(h => h.replace("{EXERCISE}", title)),
+            } 
           });
           return JSON.stringify({ success: true, captions: captions.length, hashtags: hashtags.length, platform: toolInput.platform });
         },
@@ -190,39 +307,42 @@ export default function ExerciseVideoAgentScreen() {
           console.log("[ExerciseVideoAgent] generateFullVideoPack called", toolInput);
           if (!exercise) return JSON.stringify({ success: false, error: "No exercise found" });
           
+          const viralHook = VIRAL_HOOKS[Math.floor(Math.random() * VIRAL_HOOKS.length)]?.replace("{EXERCISE}", exercise.title) ?? "";
+          
           const script: VideoScriptScene[] = [
-            { timecode: "[00:00-00:03]", content: `Hook: Dynamic intro of ${exercise.title}` },
-            { timecode: "[00:03-00:08]", content: "Benefits overlay for diabetes management" },
-            { timecode: "[00:08-00:20]", content: "Step-by-step form demonstration" },
-            { timecode: "[00:20-00:35]", content: "Full exercise execution with tips" },
-            { timecode: "[00:35-00:45]", content: "Modifications and intensity options" },
-            { timecode: "[00:45-00:55]", content: "Stats overlay + results preview" },
-            { timecode: "[00:55-00:60]", content: "Motivational CTA ending" },
+            { timecode: "[00:00-00:02]", content: `HOOK: "${viralHook}" - Dynamic teaser` },
+            { timecode: "[00:02-00:05]", content: `Stats flash: ${exercise.caloriesBurned} cal | ${exercise.duration} min | ${exercise.intensity}` },
+            { timecode: "[00:05-00:08]", content: "3-2-1 countdown with energy build" },
+            { timecode: "[00:08-00:18]", content: "Full demonstration with beat-synced cuts" },
+            { timecode: "[00:18-00:23]", content: "Form check close-up with text callouts" },
+            { timecode: "[00:23-00:27]", content: "Modification showcase: easy/hard versions" },
+            { timecode: "[00:27-00:30]", content: "Power finish + sweat shot + CTA overlay" },
           ];
 
           const storyboard: StoryboardShot[] = [
-            { shotNumber: 1, duration: "3s", angle: "wide", action: "Intro pose", onScreenText: exercise.title, soundCue: "Music hit" },
-            { shotNumber: 2, duration: "5s", angle: "medium", action: "Benefits display", onScreenText: `${exercise.caloriesBurned} cal`, soundCue: "upbeat" },
-            { shotNumber: 3, duration: "12s", angle: "full-body", action: "Form demonstration", onScreenText: "", soundCue: "instructional" },
-            { shotNumber: 4, duration: "15s", angle: "tracking", action: "Exercise execution", onScreenText: "Rep count", soundCue: "energetic" },
-            { shotNumber: 5, duration: "10s", angle: "split-screen", action: "Modifications", onScreenText: "Options", soundCue: "transition" },
-            { shotNumber: 6, duration: "5s", angle: "hero", action: "Final pose", onScreenText: "CTA", soundCue: "Music finale" },
+            { shotNumber: 1, duration: "2s", angle: "silhouette low", action: "Dramatic intro pose", onScreenText: "", soundCue: "Bass build" },
+            { shotNumber: 2, duration: "3s", angle: "medium front", action: "Title + stats reveal", onScreenText: exercise.title, soundCue: "Drop" },
+            { shotNumber: 3, duration: "3s", angle: "tracking side", action: "Form demonstration", onScreenText: `${exercise.caloriesBurned} cal`, soundCue: "Beat" },
+            { shotNumber: 4, duration: "5s", angle: "dynamic multi", action: "Full speed execution", onScreenText: "", soundCue: "Energy" },
+            { shotNumber: 5, duration: "3s", angle: "close-up", action: "Sweat + determination", onScreenText: exercise.intensity, soundCue: "Push" },
+            { shotNumber: 6, duration: "2s", angle: "hero wide", action: "Victory pose", onScreenText: "Follow! 💪", soundCue: "Finale" },
           ];
 
           const prompts = [
-            `Cinematic shot of ${exercise.title} demonstration, professional fitness setting, 9:16 vertical`,
-            `Close-up of proper form during ${exercise.title}, motivational lighting`,
-            `Dynamic tracking shot of full ${exercise.title} movement, modern gym`,
+            `[HOOK] Silhouette of athlete about to perform ${exercise.title}, dramatic backlight, anticipation, 9:16, cinematic`,
+            `[ACTION] Dynamic ${exercise.title} demonstration, perfect form, tracking shot, modern gym, motivational`,
+            `[INTENSITY] Close-up face during ${exercise.title} peak effort, sweat, determination, shallow DOF`,
+            `[VICTORY] Power pose finish after ${exercise.title}, accomplished expression, inspiring fitness content`,
           ];
 
           const captions = [
-            `${exercise.title} - ${exercise.caloriesBurned} cal burn! 🔥`,
-            "Perfect for blood sugar control 💪",
-            `${exercise.duration} minutes, ${exercise.intensity} intensity`,
-            "Diabetes-friendly fitness routine 💚",
+            `POV: Your blood sugar after ${exercise.title} 📉💚`,
+            `${exercise.caloriesBurned} calories in ${exercise.duration} minutes 🔥`,
+            `${exercise.intensity} intensity, maximum results`,
+            "Diabetic fitness check ✅",
           ];
 
-          const hashtags = ["#diabetesfitness", "#workout", "#bloodsugar", "#fitness", "#diabeteslife", "#exercise"];
+          const hashtags = ["#diabetesfitness", "#workout", "#bloodsugar", "#fitnesstok", "#diabeteslife", "#exercise", "#fyp", "#viral", "#healthytok"];
           
           setGeneratedContent({ 
             type: "full_pack", 
@@ -230,9 +350,18 @@ export default function ExerciseVideoAgentScreen() {
               videoScript: script, 
               verticalStoryboard: storyboard, 
               videoGenerationPrompts: prompts,
+              finalHeroShotPrompt: `[THUMBNAIL] Professional fitness photo of athlete mid-${exercise.title}, perfect form, dramatic lighting, sweat glistening, determined expression, 9:16 vertical, award-winning`,
               autoCaptions: captions,
               hashtags,
-              cta: "Follow for more diabetes-friendly workouts! 💪"
+              cta: "Save this and crush your next workout! 💪🔥",
+              viralHooks: [viralHook, ...VIRAL_HOOKS.slice(0, 2).map(h => h.replace("{EXERCISE}", exercise.title))],
+              trendingSounds: TRENDING_SOUNDS.slice(0, 4),
+              bRollSuggestions: [
+                "Water bottle grab/drink",
+                "Towel wipe forehead",
+                "Timer close-up",
+                "Deep breathing recovery",
+              ],
             } 
           });
           return JSON.stringify({ success: true, message: "Full video pack generated!" });
@@ -264,11 +393,54 @@ export default function ExerciseVideoAgentScreen() {
     setInput("");
   }, [input, isLoading, exercise, sendMessage, status]);
 
+  const generateInstantPack = useCallback(() => {
+    if (!exercise) return;
+    
+    const viralHook = VIRAL_HOOKS[Math.floor(Math.random() * VIRAL_HOOKS.length)]?.replace("{EXERCISE}", exercise.title) ?? "";
+    
+    const script: VideoScriptScene[] = [
+      { timecode: "[00:00-00:02]", content: `HOOK: "${viralHook}"` },
+      { timecode: "[00:02-00:05]", content: `Stats: ${exercise.caloriesBurned} cal | ${exercise.duration} min` },
+      { timecode: "[00:05-00:20]", content: "Full demo with form tips" },
+      { timecode: "[00:20-00:27]", content: "Intensity options" },
+      { timecode: "[00:27-00:30]", content: "Power finish + CTA" },
+    ];
+    
+    const storyboard: StoryboardShot[] = [
+      { shotNumber: 1, duration: "2s", angle: "dramatic", action: "Hook teaser", onScreenText: "", soundCue: "Drop" },
+      { shotNumber: 2, duration: "3s", angle: "medium", action: "Title + stats", onScreenText: exercise.title, soundCue: "Beat" },
+      { shotNumber: 3, duration: "15s", angle: "tracking", action: "Full demo", onScreenText: `${exercise.caloriesBurned} cal`, soundCue: "Energy" },
+      { shotNumber: 4, duration: "5s", angle: "hero", action: "Finish + CTA", onScreenText: "Follow! 💪", soundCue: "Finale" },
+    ];
+    
+    setGeneratedContent({
+      type: "instant_pack",
+      data: {
+        videoScript: script,
+        verticalStoryboard: storyboard,
+        videoGenerationPrompts: [
+          `Dynamic ${exercise.title} workout video, athletic person, perfect form, 9:16 vertical, viral fitness`,
+          `Victory pose after ${exercise.title}, sweat, determination, inspiring fitness content`,
+        ],
+        finalHeroShotPrompt: `Professional fitness photo ${exercise.title}, dramatic lighting, perfect form, 9:16`,
+        autoCaptions: [
+          `${exercise.title} — ${exercise.caloriesBurned} cal 🔥`,
+          "Diabetes-friendly fitness",
+          `${exercise.duration} min workout`,
+        ],
+        hashtags: ["#diabetesfitness", "#workout", "#fitnesstok", "#healthytok", "#fyp"],
+        cta: "Save this! 💪",
+        viralHooks: [viralHook],
+        trendingSounds: TRENDING_SOUNDS.slice(0, 2),
+      },
+    });
+  }, [exercise]);
+
   const quickActions = [
-    { label: "Full Video Pack", icon: Video, prompt: "Generate a complete video pack for this exercise" },
-    { label: "Video Script", icon: Play, prompt: "Create a 45-second workout video script" },
-    { label: "AI Prompts", icon: Sparkles, prompt: "Generate AI video prompts for Runway" },
-    { label: "Captions", icon: MessageSquare, prompt: "Create captions and hashtags for TikTok" },
+    { label: "⚡ Instant Pack", icon: Zap, prompt: "__INSTANT__", instant: true },
+    { label: "Viral Pack", icon: TrendingUp, prompt: "Generate a viral video pack optimized for maximum engagement" },
+    { label: "AI Prompts", icon: Sparkles, prompt: "Generate AI video prompts for Runway Gen-3" },
+    { label: "TikTok Ready", icon: MessageSquare, prompt: "Create trendy captions and hashtags for TikTok" },
   ];
 
   useEffect(() => {
@@ -416,6 +588,57 @@ export default function ExerciseVideoAgentScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {generatedContent.data.viralHooks && generatedContent.data.viralHooks.length > 0 && (
+          <View style={styles.contentCard}>
+            <View style={styles.cardHeader}>
+              <TrendingUp size={14} color={Colors.light.tint} />
+              <Text style={styles.cardTitle}>Viral Hooks</Text>
+            </View>
+            {generatedContent.data.viralHooks.map((hook, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.hookItem}
+                onPress={() => copyToClipboard(hook, 3000 + idx)}
+              >
+                <Text style={styles.hookText}>{`"${hook}"`}</Text>
+                {copiedIndex === 3000 + idx ? (
+                  <Check size={14} color={Colors.light.success} />
+                ) : (
+                  <Copy size={14} color={Colors.light.textSecondary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {generatedContent.data.trendingSounds && generatedContent.data.trendingSounds.length > 0 && (
+          <View style={styles.contentCard}>
+            <View style={styles.cardHeader}>
+              <Music size={14} color={Colors.light.gold} />
+              <Text style={styles.cardTitle}>Trending Sounds</Text>
+            </View>
+            {generatedContent.data.trendingSounds.map((sound, idx) => (
+              <View key={idx} style={styles.soundItem}>
+                <Text style={styles.soundText}>🎵 {sound}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {generatedContent.data.bRollSuggestions && generatedContent.data.bRollSuggestions.length > 0 && (
+          <View style={styles.contentCard}>
+            <View style={styles.cardHeader}>
+              <Camera size={14} color={Colors.light.accent} />
+              <Text style={styles.cardTitle}>B-Roll Ideas</Text>
+            </View>
+            {generatedContent.data.bRollSuggestions.map((broll, idx) => (
+              <View key={idx} style={styles.brollItem}>
+                <Text style={styles.brollText}>• {broll}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -457,13 +680,19 @@ export default function ExerciseVideoAgentScreen() {
             {quickActions.map((action, idx) => (
               <TouchableOpacity
                 key={idx}
-                style={styles.quickAction}
-                onPress={() => handleSend(action.prompt)}
+                style={[styles.quickAction, action.instant && styles.quickActionInstant]}
+                onPress={() => {
+                  if (action.instant) {
+                    generateInstantPack();
+                  } else {
+                    handleSend(action.prompt);
+                  }
+                }}
                 activeOpacity={0.8}
-                disabled={isLoading}
+                disabled={isLoading && !action.instant}
               >
-                <action.icon size={16} color={Colors.light.tint} />
-                <Text style={styles.quickActionText}>{action.label}</Text>
+                <action.icon size={16} color={action.instant ? "#fff" : Colors.light.tint} />
+                <Text style={[styles.quickActionText, action.instant && styles.quickActionTextInstant]}>{action.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -623,10 +852,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
   },
+  quickActionInstant: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
   quickActionText: {
     fontSize: 13,
     fontWeight: "600" as const,
     color: Colors.light.text,
+  },
+  quickActionTextInstant: {
+    color: "#fff",
   },
   messageContainer: {
     marginBottom: 12,
@@ -881,6 +1117,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600" as const,
     color: Colors.light.accent,
+  },
+  hookItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.light.tintLight,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  hookText: {
+    flex: 1,
+    fontSize: 13,
+    fontStyle: "italic" as const,
+    color: Colors.light.text,
+    lineHeight: 18,
+  },
+  soundItem: {
+    backgroundColor: Colors.light.goldLight,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  soundText: {
+    fontSize: 13,
+    color: Colors.light.text,
+  },
+  brollItem: {
+    paddingVertical: 6,
+  },
+  brollText: {
+    fontSize: 13,
+    color: Colors.light.textSecondary,
+    lineHeight: 18,
   },
   inputContainer: {
     flexDirection: "row",

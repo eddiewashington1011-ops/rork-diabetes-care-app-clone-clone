@@ -12,7 +12,7 @@ import {
   Animated,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
-import { Send, Video, Sparkles, Copy, Check, Camera, Play, Hash, MessageSquare } from "lucide-react-native";
+import { Send, Video, Sparkles, Copy, Check, Camera, Play, Hash, MessageSquare, Zap, TrendingUp, Music } from "lucide-react-native";
 import { createRorkTool, useRorkAgent } from "@rork-ai/toolkit-sdk";
 import * as z from "zod";
 import * as Clipboard from "expo-clipboard";
@@ -35,8 +35,12 @@ type StoryboardShot = {
 };
 
 type GeneratedContent = {
-  type: "script" | "storyboard" | "prompts" | "captions" | "full_pack";
-  data: Partial<ShortVideoPack>;
+  type: "script" | "storyboard" | "prompts" | "captions" | "full_pack" | "instant_pack";
+  data: Partial<ShortVideoPack> & {
+    viralHooks?: string[];
+    trendingSounds?: string[];
+    bRollSuggestions?: string[];
+  };
 };
 
 type RecipeRef = {
@@ -49,28 +53,70 @@ type RecipeRef = {
 
 type ContentSetter = React.Dispatch<React.SetStateAction<GeneratedContent | null>>;
 
+const VIRAL_HOOKS = [
+  "POV: You just found your new favorite low-carb meal",
+  "The meal that changed my blood sugar game forever",
+  "Doctor said I couldn't eat good food... I proved them wrong",
+  "This {RECIPE} hits different when you're managing diabetes",
+  "Stop scrolling - this recipe will save your meal prep",
+  "My nutritionist couldn't believe this was diabetes-friendly",
+  "The secret ingredient no one talks about",
+  "Wait for the final reveal... 🤯",
+];
+
+const TRENDING_SOUNDS = [
+  "Oh No - Kreepa (for reveals)",
+  "Aesthetic cooking ASMR - Original",
+  "Cooking with confidence - Upbeat mix",
+  "Satisfying food prep - Viral audio",
+  "Clean girl cooking - Trending 2024",
+  "That one sound - For transitions",
+  "Healthy eating motivation - Popular",
+];
+
 function createTools(recipeRef: React.MutableRefObject<RecipeRef>, setContent: ContentSetter) {
   return {
     generateVideoScript: createRorkTool({
       description: "Generate a time-coded video script for a short-form cooking video (30-60 seconds). Use this when the user wants to create a video script or plan video content.",
       zodSchema: z.object({
-        style: z.enum(["fast-paced", "educational", "asmr", "cinematic"]).describe("The style of the video"),
+        style: z.enum(["fast-paced", "educational", "asmr", "cinematic", "viral"]).describe("The style of the video"),
         duration: z.number().min(15).max(90).describe("Target video duration in seconds"),
         focusArea: z.string().optional().describe("What to emphasize: cooking process, final dish, nutrition info, etc."),
       }),
       execute: (toolInput) => {
         console.log("[VideoAgent] generateVideoScript called", toolInput);
         const recipe = recipeRef.current;
-        const script: VideoScriptScene[] = [
-          { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${recipe?.title ?? "the dish"} with steam rising` },
-          { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with nutrition overlay" },
-          { timecode: "[00:08-00:18]", content: `${toolInput.style === "fast-paced" ? "Rapid cuts of" : "Smooth shots showing"} prep work` },
-          { timecode: "[00:18-00:30]", content: "Main cooking action with satisfying sounds" },
-          { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups" },
-          { timecode: "[00:40-00:50]", content: "Hero shot + nutrition facts overlay" },
-          { timecode: "[00:50-00:60]", content: "CTA with fork bite shot" },
+        const title = recipe?.title ?? "the dish";
+        
+        const viralHook = VIRAL_HOOKS[Math.floor(Math.random() * VIRAL_HOOKS.length)]?.replace("{RECIPE}", title) ?? "";
+        
+        const script: VideoScriptScene[] = toolInput.style === "viral" ? [
+          { timecode: "[00:00-00:02]", content: `HOOK: "${viralHook}" - Close-up teaser of final dish` },
+          { timecode: "[00:02-00:05]", content: "Quick ingredient toss/pour shot with text overlay: ingredients list" },
+          { timecode: "[00:05-00:08]", content: "Rapid 3-cut prep sequence: chop-slice-dice with ASMR audio" },
+          { timecode: "[00:08-00:15]", content: "Cooking money shot: sizzle, steam, satisfying sounds (slow-mo optional)" },
+          { timecode: "[00:15-00:20]", content: "Build-up transition: ingredients coming together, music rising" },
+          { timecode: "[00:20-00:25]", content: `Nutrition pop-up: "Only ${recipe?.carbsPerServing ?? 20}g carbs!" with checkmark animation` },
+          { timecode: "[00:25-00:28]", content: "Hero plating shot: garnish drop in slow-mo" },
+          { timecode: "[00:28-00:30]", content: "THE BITE: Fork lift with cheese pull/steam, freeze frame on reaction" },
+        ] : [
+          { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${title} with steam rising - text: "${viralHook}"` },
+          { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with animated nutrition overlay" },
+          { timecode: "[00:08-00:18]", content: `${toolInput.style === "fast-paced" ? "Rapid cuts of" : "Smooth shots showing"} prep work with satisfying ASMR` },
+          { timecode: "[00:18-00:30]", content: "Main cooking action with sizzle sounds and steam" },
+          { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups and dramatic lighting" },
+          { timecode: "[00:40-00:50]", content: `Hero shot + animated nutrition facts: ${recipe?.calories ?? 350} cal, ${recipe?.carbsPerServing ?? 20}g carbs` },
+          { timecode: "[00:50-00:60]", content: "CTA with satisfying fork bite shot and text overlay" },
         ];
-        setContent({ type: "script", data: { videoScript: script } });
+        
+        setContent({ 
+          type: "script", 
+          data: { 
+            videoScript: script,
+            viralHooks: [viralHook],
+            trendingSounds: TRENDING_SOUNDS.slice(0, 3),
+          },
+        });
         return JSON.stringify({ success: true, scenes: script.length, style: toolInput.style });
       },
     }),
@@ -79,21 +125,43 @@ function createTools(recipeRef: React.MutableRefObject<RecipeRef>, setContent: C
       description: "Generate a detailed shot-by-shot storyboard for vertical video (9:16). Use when user wants camera angles, shot types, or visual planning.",
       zodSchema: z.object({
         shotCount: z.number().min(6).max(12).describe("Number of shots to generate"),
-        cameraStyle: z.enum(["overhead", "dynamic", "handheld", "tripod"]).describe("Primary camera style"),
+        cameraStyle: z.enum(["overhead", "dynamic", "handheld", "tripod", "cinematic"]).describe("Primary camera style"),
       }),
       execute: (toolInput) => {
         console.log("[VideoAgent] generateStoryboard called", toolInput);
         const recipe = recipeRef.current;
-        const angles = ["overhead", "close-up", "45-degree", "eye-level", "slow pan", "macro"];
-        const shots: StoryboardShot[] = Array.from({ length: toolInput.shotCount }, (_, i) => ({
-          shotNumber: i + 1,
-          duration: `${2 + Math.floor(Math.random() * 3)}s`,
-          angle: angles[i % angles.length] ?? "overhead",
-          action: i === 0 ? "Hero reveal shot" : i === toolInput.shotCount - 1 ? "Final bite shot" : `Cooking step ${i}`,
-          onScreenText: i === 0 ? recipe?.title ?? "Recipe" : i === 1 ? `${recipe?.carbsPerServing ?? 20}g carbs` : "",
-          soundCue: i === 0 ? "Music hit" : ["sizzle", "chop", "pour", "stir"][i % 4] ?? "ambient",
-        }));
-        setContent({ type: "storyboard", data: { verticalStoryboard: shots } });
+        const title = recipe?.title ?? "Recipe";
+        
+        const cinematicShots: StoryboardShot[] = [
+          { shotNumber: 1, duration: "2s", angle: "extreme close-up", action: "Teaser: steam rising from dish (out of focus to sharp)", onScreenText: "", soundCue: "Bass drop" },
+          { shotNumber: 2, duration: "3s", angle: "overhead 90°", action: `Title reveal: "${title}" with ingredients layout`, onScreenText: title, soundCue: "Upbeat start" },
+          { shotNumber: 3, duration: "2s", angle: "45° dutch angle", action: "Ingredient pour/toss into frame", onScreenText: `${recipe?.carbsPerServing ?? 20}g carbs`, soundCue: "Whoosh" },
+          { shotNumber: 4, duration: "4s", angle: "tracking close-up", action: "Knife work: chop sequence with ASMR", onScreenText: "", soundCue: "Crisp chops" },
+          { shotNumber: 5, duration: "3s", angle: "low angle", action: "Pan/pot hero shot with steam backlit", onScreenText: "", soundCue: "Sizzle" },
+          { shotNumber: 6, duration: "4s", angle: "overhead with motion", action: "Cooking action: stir/flip with visible heat", onScreenText: "", soundCue: "Cooking ASMR" },
+          { shotNumber: 7, duration: "3s", angle: "rack focus", action: "Ingredients to finished dish transition", onScreenText: "", soundCue: "Music build" },
+          { shotNumber: 8, duration: "3s", angle: "hero shot 30°", action: "Plating with garnish drop (slow-mo)", onScreenText: "", soundCue: "Drop beat" },
+          { shotNumber: 9, duration: "2s", angle: "macro lens", action: "Texture detail: sauce drizzle/cheese pull", onScreenText: `${recipe?.calories ?? 350} cal`, soundCue: "Satisfying" },
+          { shotNumber: 10, duration: "2s", angle: "eye-level", action: "THE BITE: fork lift with steam", onScreenText: "Save this! 📌", soundCue: "Music finale" },
+        ];
+        
+        const bRoll = [
+          "Hands washing vegetables under running water",
+          "Spices being sprinkled from height",
+          "Oil swirling in hot pan",
+          "Fresh herbs being torn",
+          "Steam rising against dark background",
+          "Timer/clock showing quick prep time",
+        ];
+        
+        const shots = cinematicShots.slice(0, toolInput.shotCount);
+        setContent({ 
+          type: "storyboard", 
+          data: { 
+            verticalStoryboard: shots,
+            bRollSuggestions: bRoll,
+          },
+        });
         return JSON.stringify({ success: true, shots: shots.length, style: toolInput.cameraStyle });
       },
     }),
@@ -101,24 +169,35 @@ function createTools(recipeRef: React.MutableRefObject<RecipeRef>, setContent: C
     generateAIVideoPrompts: createRorkTool({
       description: "Generate prompts for AI video tools like Runway, Sora, Pika, or Luma. Use when user wants to create AI-generated video clips.",
       zodSchema: z.object({
-        tool: z.enum(["runway", "sora", "pika", "luma", "generic"]).describe("Target AI video tool"),
+        tool: z.enum(["runway", "sora", "pika", "luma", "kling", "generic"]).describe("Target AI video tool"),
         promptCount: z.number().min(3).max(10).describe("Number of prompts to generate"),
       }),
       execute: (toolInput) => {
         console.log("[VideoAgent] generateAIVideoPrompts called", toolInput);
         const recipe = recipeRef.current;
         const title = recipe?.title ?? "delicious dish";
+        
+        const toolSpecificParams = {
+          runway: "cinematic motion, smooth camera movement, gen-3 alpha quality",
+          sora: "photorealistic, natural motion, consistent lighting throughout",
+          pika: "stylized motion, creative transitions, dynamic camera",
+          luma: "dream machine quality, fluid motion, cinematic depth",
+          kling: "hyper-realistic, professional cinematography, 4K detail",
+          generic: "high quality, smooth motion, professional lighting",
+        };
+        
         const prompts = [
-          `Cinematic overhead shot of ${title}, steam rising gently, professional food photography lighting, 9:16 vertical format, 4K quality`,
-          `Close-up of fresh ingredients on marble counter, soft natural window lighting, shallow depth of field, vertical format`,
-          `Smooth tracking shot of chef's hands chopping vegetables, wooden cutting board, satisfying cooking video aesthetic`,
-          `Eye-level shot of ingredients sizzling in pan, steam and movement visible, warm kitchen lighting, professional food video`,
-          `Macro close-up of sauce being drizzled over dish, slow motion feel, restaurant quality presentation`,
-          `45-degree angle of beautifully plated ${title}, garnished with fresh herbs, soft diffused lighting`,
-          `Close-up of fork lifting perfect bite, steam visible, appetizing food porn aesthetic, vertical format`,
+          `[HOOK SHOT] Extreme close-up of ${title} with steam rising against dark background, camera slowly pulls back to reveal full dish, dramatic side lighting, bokeh background, 9:16 vertical, ${toolSpecificParams[toolInput.tool]}`,
+          `[INGREDIENT DROP] Overhead shot of fresh colorful ingredients falling onto marble surface in slow motion, each ingredient lands perfectly in place, soft natural lighting from window, shallow depth of field, vertical format, ${toolSpecificParams[toolInput.tool]}`,
+          `[PREP SEQUENCE] Chef's hands confidently chopping vegetables on wooden cutting board, camera tracks along knife motion, satisfying rhythm, warm kitchen ambient lighting, ASMR-worthy crisp sounds implied, ${toolSpecificParams[toolInput.tool]}`,
+          `[COOKING ACTION] Eye-level shot of ${title} ingredients sizzling in cast iron pan, steam and heat shimmer visible, camera slowly pushes in, golden hour kitchen lighting, oil glistening, ${toolSpecificParams[toolInput.tool]}`,
+          `[SAUCE DRIZZLE] Macro lens extreme close-up of golden sauce being drizzled over dish in slow motion, sauce catches light and glistens, camera follows drizzle path, ${toolSpecificParams[toolInput.tool]}`,
+          `[PLATING GLORY] 45-degree angle tracking shot as garnish is delicately placed on ${title}, camera circles dish slightly, restaurant-quality presentation, soft diffused lighting with gentle shadows, ${toolSpecificParams[toolInput.tool]}`,
+          `[MONEY SHOT] Cinematic close-up of fork piercing ${title} and lifting perfect bite with cheese pull/steam, camera follows fork upward, viewer POV perspective, makes viewer instantly hungry, ${toolSpecificParams[toolInput.tool]}`,
+          `[REVEAL TRANSITION] Camera pushes through steam cloud to reveal beautifully plated ${title}, rack focus from blurry to sharp, dramatic lighting shift, hero moment, ${toolSpecificParams[toolInput.tool]}`,
         ].slice(0, toolInput.promptCount);
         
-        const heroPrompt = `Professional food photography of ${title}, perfectly plated on elegant ceramic dish, soft side lighting with gentle shadows, shallow depth of field, garnished with microgreens, steam rising delicately, warm inviting color palette, 9:16 vertical, makes viewer hungry, ${toolInput.tool === "runway" ? "cinematic motion" : "hyper-realistic"}`;
+        const heroPrompt = `[HERO THUMBNAIL] Professional food photography masterpiece of ${title}, perfectly plated on artisan ceramic dish, dramatic Rembrandt lighting from side with gentle fill, ultra shallow depth of field f/1.4, garnished with fresh microgreens and edible flowers, delicate steam wisps rising, warm inviting color palette with teal shadows, 9:16 vertical composition with rule of thirds, makes viewer's mouth water instantly, ${toolSpecificParams[toolInput.tool]}, award-winning food photography`;
         
         setContent({ 
           type: "prompts", 
@@ -137,30 +216,72 @@ function createTools(recipeRef: React.MutableRefObject<RecipeRef>, setContent: C
       execute: (toolInput) => {
         console.log("[VideoAgent] generateCaptionsAndHashtags called", toolInput);
         const recipe = recipeRef.current;
-        const captions = [
-          `${recipe?.title ?? "This recipe"} - only ${recipe?.carbsPerServing ?? 20}g carbs!`,
-          "Perfect for blood sugar control",
-          "No added sugars in this one!",
-          `${recipe?.calories ?? 350} calories of pure satisfaction`,
-          `Ready in ${(recipe?.prepTime ?? 10) + (recipe?.cookTime ?? 15)} minutes`,
-          "Diabetes-friendly comfort food",
-        ];
+        const title = recipe?.title ?? "This recipe";
+        const carbs = recipe?.carbsPerServing ?? 20;
+        const cals = recipe?.calories ?? 350;
+        const totalTime = (recipe?.prepTime ?? 10) + (recipe?.cookTime ?? 15);
         
-        const hashtags = toolInput.platform === "tiktok" 
-          ? ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#diabetesawareness", "#mealprep", "#healthyrecipes"]
-          : toolInput.platform === "instagram"
-          ? ["#diabetesfriendly", "#lowcarbrecipes", "#healthyeating", "#bloodsugarcontrol", "#mealprep", "#cleaneating", "#healthyfood"]
-          : ["#diabetesfriendly", "#lowcarb", "#healthyrecipes", "#bloodsugar", "#mealprep", "#healthyeating", "#diabetesawareness"];
+        const platformCaptions = {
+          tiktok: [
+            `POV: You found your new favorite ${title} 🔥`,
+            `Only ${carbs}g carbs and it slaps this hard?!`,
+            "My doctor would be so proud rn",
+            `${totalTime} mins from hungry to happy`,
+            "Blood sugar staying stable while I eat like royalty",
+            "The way this changed my life >>>>",
+          ],
+          instagram: [
+            `${title} — where flavor meets function ✨`,
+            `${carbs}g carbs | ${cals} cal | Endless satisfaction`,
+            "Diabetes-friendly never looked this good",
+            `From prep to plate in ${totalTime} minutes`,
+            "Nourishing my body without sacrificing taste",
+            "Save this for your Sunday meal prep 📌",
+          ],
+          youtube: [
+            `${title} - Diabetes-Friendly Recipe (Only ${carbs}g Carbs!)`,
+            `Easy ${totalTime}-Minute Recipe | ${cals} Calories`,
+            "Blood Sugar Friendly Comfort Food",
+            "Low Carb Recipe That Actually Tastes Amazing",
+            "Meal Prep This For The Whole Week",
+            "Doctor-Approved Delicious Recipe",
+          ],
+          all: [
+            `${title} — ${carbs}g carbs of pure joy`,
+            "Diabetes-friendly comfort food at its finest",
+            `Ready in ${totalTime} minutes`,
+            `${cals} calories, zero compromise on flavor`,
+            "Your blood sugar will thank you",
+            "Save • Share • Make it tonight",
+          ],
+        };
         
-        const cta = toolInput.tone === "fun" 
-          ? "Save this and try it tonight!"
-          : toolInput.tone === "educational"
-          ? "Save for your next meal prep session"
-          : "Follow for more diabetes-friendly recipes!";
+        const platformHashtags = {
+          tiktok: ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#diabetesawareness", "#mealprep", "#healthyrecipes", "#bloodsugar", "#type2diabetes", "#fyp"],
+          instagram: ["#diabetesfriendly", "#lowcarbrecipes", "#healthyeating", "#bloodsugarcontrol", "#mealprep", "#cleaneating", "#healthyfood", "#diabeticfriendly", "#balancedmeals", "#foodphotography"],
+          youtube: ["#diabetesrecipe", "#lowcarbmeals", "#healthycooking", "#mealprep", "#diabetesfriendly", "#easyrecipe", "#healthylifestyle"],
+          all: ["#diabetesfriendly", "#lowcarb", "#healthyrecipes", "#bloodsugar", "#mealprep", "#healthyeating", "#diabetesawareness", "#cleaneating"],
+        };
+        
+        const platformCTAs = {
+          tiktok: { fun: "Save this before it blows up! 💾", educational: "Follow for more diabetes wins 🏆", trendy: "Comment 'RECIPE' for the full breakdown 👇", professional: "Follow for daily diabetes-friendly recipes" },
+          instagram: { fun: "Double tap if you'd devour this! ❤️", educational: "Save for your next meal prep Sunday 📌", trendy: "Tag someone who needs this recipe! 👇", professional: "Link in bio for full recipe & nutrition info" },
+          youtube: { fun: "SMASH that subscribe for more recipes! 🔔", educational: "Subscribe for weekly diabetes-friendly meals", trendy: "Comment your carb limit below! 👇", professional: "Subscribe and hit the bell for new recipes" },
+          all: { fun: "Save this and try it tonight! 🔥", educational: "Save for your next meal prep session 📌", trendy: "Share with someone who needs this! 💪", professional: "Follow for more diabetes-friendly recipes" },
+        };
+        
+        const captions = platformCaptions[toolInput.platform];
+        const hashtags = platformHashtags[toolInput.platform];
+        const cta = platformCTAs[toolInput.platform][toolInput.tone];
         
         setContent({ 
           type: "captions", 
-          data: { autoCaptions: captions, hashtags, cta } 
+          data: { 
+            autoCaptions: captions, 
+            hashtags, 
+            cta,
+            viralHooks: VIRAL_HOOKS.slice(0, 3).map(h => h.replace("{RECIPE}", title)),
+          },
         });
         return JSON.stringify({ success: true, captions: captions.length, hashtags: hashtags.length, platform: toolInput.platform });
       },
@@ -176,39 +297,41 @@ function createTools(recipeRef: React.MutableRefObject<RecipeRef>, setContent: C
         const recipe = recipeRef.current;
         if (!recipe) return JSON.stringify({ success: false, error: "No recipe found" });
         
+        const viralHook = VIRAL_HOOKS[Math.floor(Math.random() * VIRAL_HOOKS.length)]?.replace("{RECIPE}", recipe.title) ?? "";
+        
         const script: VideoScriptScene[] = [
-          { timecode: "[00:00-00:03]", content: `Hook: Stunning reveal of ${recipe.title} with steam rising` },
-          { timecode: "[00:03-00:08]", content: "Quick ingredient showcase with nutrition overlay" },
-          { timecode: "[00:08-00:18]", content: `${toolInput.style === "viral" ? "Rapid cuts of" : "Smooth shots showing"} prep work` },
-          { timecode: "[00:18-00:30]", content: "Main cooking action with satisfying sounds" },
-          { timecode: "[00:30-00:40]", content: "Plating sequence with garnish close-ups" },
-          { timecode: "[00:40-00:50]", content: "Hero shot + nutrition facts overlay" },
-          { timecode: "[00:50-00:60]", content: "CTA with fork bite shot" },
+          { timecode: "[00:00-00:02]", content: `HOOK: "${viralHook}" - Teaser of final dish` },
+          { timecode: "[00:02-00:05]", content: "Rapid ingredient showcase with animated nutrition pop-ups" },
+          { timecode: "[00:05-00:12]", content: `${toolInput.style === "viral" ? "Quick-cut montage" : "Smooth demonstration"} of prep with ASMR audio` },
+          { timecode: "[00:12-00:22]", content: "Cooking money shots: sizzle, steam, satisfying sounds" },
+          { timecode: "[00:22-00:27]", content: "Plating sequence with slow-mo garnish drop" },
+          { timecode: "[00:27-00:30]", content: `Hero shot + THE BITE with text: "${recipe.carbsPerServing}g carbs, ${recipe.calories} cal"` },
         ];
 
         const storyboard: StoryboardShot[] = [
-          { shotNumber: 1, duration: "3s", angle: "overhead", action: "Hero reveal", onScreenText: recipe.title, soundCue: "Music hit" },
-          { shotNumber: 2, duration: "5s", angle: "close-up", action: "Ingredients", onScreenText: `${recipe.carbsPerServing}g carbs`, soundCue: "upbeat" },
-          { shotNumber: 3, duration: "10s", angle: "45-degree", action: "Prep work", onScreenText: "", soundCue: "chop sounds" },
-          { shotNumber: 4, duration: "12s", angle: "eye-level", action: "Cooking", onScreenText: "", soundCue: "sizzle" },
-          { shotNumber: 5, duration: "10s", angle: "overhead", action: "Plating", onScreenText: "", soundCue: "transition" },
-          { shotNumber: 6, duration: "5s", angle: "hero", action: "Final shot", onScreenText: "CTA", soundCue: "Music finale" },
+          { shotNumber: 1, duration: "2s", angle: "extreme close-up", action: "Steam/texture teaser (rack focus)", onScreenText: "", soundCue: "Bass hit" },
+          { shotNumber: 2, duration: "3s", angle: "overhead 90°", action: "Title + ingredients reveal", onScreenText: recipe.title, soundCue: "Upbeat drop" },
+          { shotNumber: 3, duration: "3s", angle: "tracking", action: "Knife work with ASMR chops", onScreenText: `${recipe.carbsPerServing}g carbs`, soundCue: "Crisp audio" },
+          { shotNumber: 4, duration: "5s", angle: "45° low", action: "Pan cooking with visible heat", onScreenText: "", soundCue: "Sizzle" },
+          { shotNumber: 5, duration: "3s", angle: "macro", action: "Sauce/garnish application", onScreenText: "", soundCue: "Build" },
+          { shotNumber: 6, duration: "2s", angle: "hero 30°", action: "Fork bite with steam", onScreenText: "Save this! 📌", soundCue: "Finale" },
         ];
 
         const prompts = [
-          `Cinematic overhead shot of ${recipe.title}, steam rising, professional food photography, 9:16 vertical, 4K`,
-          `Close-up of fresh ingredients on marble counter, soft natural lighting, shallow depth of field`,
-          `Smooth tracking shot of cooking process, warm kitchen lighting, professional food video`,
+          `[HOOK] Extreme close-up ${recipe.title} steam rising, dramatic lighting, rack focus reveal, 9:16 vertical, cinematic motion`,
+          `[PREP] Chef hands chopping for ${recipe.title}, wooden board, tracking shot, ASMR-worthy, warm kitchen light`,
+          `[COOKING] ${recipe.title} sizzling in pan, steam and heat shimmer, low angle, golden hour lighting`,
+          `[HERO] Fork lifting perfect bite of ${recipe.title}, cheese pull/steam, viewer POV, makes mouth water`,
         ];
 
         const captions = [
-          `${recipe.title} - only ${recipe.carbsPerServing}g carbs!`,
-          "Perfect for blood sugar control",
-          `${recipe.calories} calories of pure satisfaction`,
-          "Diabetes-friendly comfort food",
+          `POV: You found the ${recipe.title} that changes everything 🔥`,
+          `Only ${recipe.carbsPerServing}g carbs and it hits this hard?!`,
+          `${recipe.calories} cal of pure satisfaction`,
+          "Blood sugar staying stable while eating like royalty",
         ];
 
-        const hashtags = ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#mealprep", "#healthyrecipes"];
+        const hashtags = ["#diabetesfriendly", "#lowcarb", "#healthytiktok", "#foodtok", "#diabetesawareness", "#mealprep", "#healthyrecipes", "#fyp", "#viral"];
         
         setContent({ 
           type: "full_pack", 
@@ -216,11 +339,19 @@ function createTools(recipeRef: React.MutableRefObject<RecipeRef>, setContent: C
             videoScript: script, 
             verticalStoryboard: storyboard, 
             videoGenerationPrompts: prompts,
-            finalHeroShotPrompt: `Professional food photography of ${recipe.title}, perfectly plated, soft lighting, 9:16 vertical`,
+            finalHeroShotPrompt: `[THUMBNAIL] Professional food photography ${recipe.title}, dramatic Rembrandt lighting, f/1.4 bokeh, steam wisps, artisan ceramic, microgreen garnish, 9:16 vertical, award-winning`,
             autoCaptions: captions,
             hashtags,
-            cta: "Save this and try it tonight!"
-          } 
+            cta: "Save this before it blows up! 💾",
+            viralHooks: [viralHook, ...VIRAL_HOOKS.slice(0, 2).map(h => h.replace("{RECIPE}", recipe.title))],
+            trendingSounds: TRENDING_SOUNDS.slice(0, 4),
+            bRollSuggestions: [
+              "Hands washing vegetables under running water",
+              "Spices being sprinkled from height",
+              "Oil swirling in hot pan",
+              "Fresh herbs being torn",
+            ],
+          },
         });
         return JSON.stringify({ success: true, message: "Full video pack generated!" });
       },
@@ -289,11 +420,54 @@ export default function VideoAgentScreen() {
     setInput("");
   }, [input, isLoading, recipe, sendMessage, status]);
 
+  const generateInstantPack = useCallback(() => {
+    if (!recipe) return;
+    
+    const viralHook = VIRAL_HOOKS[Math.floor(Math.random() * VIRAL_HOOKS.length)]?.replace("{RECIPE}", recipe.title) ?? "";
+    
+    const script: VideoScriptScene[] = [
+      { timecode: "[00:00-00:02]", content: `HOOK: "${viralHook}"` },
+      { timecode: "[00:02-00:05]", content: `Ingredients flash: ${recipe.carbsPerServing}g carbs` },
+      { timecode: "[00:05-00:15]", content: "Quick prep montage with ASMR" },
+      { timecode: "[00:15-00:25]", content: "Cooking action shots" },
+      { timecode: "[00:25-00:30]", content: "Hero shot + bite" },
+    ];
+    
+    const storyboard: StoryboardShot[] = [
+      { shotNumber: 1, duration: "2s", angle: "close-up", action: "Hook teaser", onScreenText: "", soundCue: "Drop" },
+      { shotNumber: 2, duration: "3s", angle: "overhead", action: "Ingredients", onScreenText: recipe.title, soundCue: "Beat" },
+      { shotNumber: 3, duration: "10s", angle: "tracking", action: "Prep + Cook", onScreenText: `${recipe.carbsPerServing}g carbs`, soundCue: "ASMR" },
+      { shotNumber: 4, duration: "5s", angle: "hero", action: "Plate + Bite", onScreenText: "Save! 📌", soundCue: "Finale" },
+    ];
+    
+    setGeneratedContent({
+      type: "instant_pack",
+      data: {
+        videoScript: script,
+        verticalStoryboard: storyboard,
+        videoGenerationPrompts: [
+          `Cinematic ${recipe.title} cooking video, steam, sizzle, 9:16 vertical, viral food content`,
+          `Fork lifting bite of ${recipe.title}, cheese pull, steam, food porn aesthetic`,
+        ],
+        finalHeroShotPrompt: `Professional food photo ${recipe.title}, dramatic lighting, shallow DOF, steam, 9:16`,
+        autoCaptions: [
+          `${recipe.title} — ${recipe.carbsPerServing}g carbs 🔥`,
+          "Diabetes-friendly and delicious",
+          `Ready in ${recipe.prepTime + recipe.cookTime} min`,
+        ],
+        hashtags: ["#diabetesfriendly", "#lowcarb", "#foodtok", "#healthytiktok", "#fyp"],
+        cta: "Save this! 💾",
+        viralHooks: [viralHook],
+        trendingSounds: TRENDING_SOUNDS.slice(0, 2),
+      },
+    });
+  }, [recipe]);
+
   const quickActions = [
-    { label: "Full Video Pack", icon: Video, prompt: "Generate a complete video pack for this recipe" },
-    { label: "Video Script", icon: Play, prompt: "Create a 45-second video script" },
-    { label: "AI Prompts", icon: Sparkles, prompt: "Generate AI video prompts for Runway" },
-    { label: "Captions", icon: MessageSquare, prompt: "Create captions and hashtags for TikTok" },
+    { label: "⚡ Instant Pack", icon: Zap, prompt: "__INSTANT__", instant: true },
+    { label: "Viral Pack", icon: TrendingUp, prompt: "Generate a viral video pack optimized for maximum engagement" },
+    { label: "AI Prompts", icon: Sparkles, prompt: "Generate AI video prompts for Runway Gen-3" },
+    { label: "TikTok Ready", icon: MessageSquare, prompt: "Create trendy captions and hashtags for TikTok" },
   ];
 
   useEffect(() => {
@@ -441,6 +615,57 @@ export default function VideoAgentScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {generatedContent.data.viralHooks && generatedContent.data.viralHooks.length > 0 && (
+          <View style={styles.contentCard}>
+            <View style={styles.cardHeader}>
+              <TrendingUp size={14} color={Colors.light.coral} />
+              <Text style={styles.cardTitle}>Viral Hooks</Text>
+            </View>
+            {generatedContent.data.viralHooks.map((hook, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.hookItem}
+                onPress={() => copyToClipboard(hook, 3000 + idx)}
+              >
+                <Text style={styles.hookText}>{`"${hook}"`}</Text>
+                {copiedIndex === 3000 + idx ? (
+                  <Check size={14} color={Colors.light.success} />
+                ) : (
+                  <Copy size={14} color={Colors.light.textSecondary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {generatedContent.data.trendingSounds && generatedContent.data.trendingSounds.length > 0 && (
+          <View style={styles.contentCard}>
+            <View style={styles.cardHeader}>
+              <Music size={14} color={Colors.light.gold} />
+              <Text style={styles.cardTitle}>Trending Sounds</Text>
+            </View>
+            {generatedContent.data.trendingSounds.map((sound, idx) => (
+              <View key={idx} style={styles.soundItem}>
+                <Text style={styles.soundText}>🎵 {sound}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {generatedContent.data.bRollSuggestions && generatedContent.data.bRollSuggestions.length > 0 && (
+          <View style={styles.contentCard}>
+            <View style={styles.cardHeader}>
+              <Camera size={14} color={Colors.light.sapphire} />
+              <Text style={styles.cardTitle}>B-Roll Ideas</Text>
+            </View>
+            {generatedContent.data.bRollSuggestions.map((broll, idx) => (
+              <View key={idx} style={styles.brollItem}>
+                <Text style={styles.brollText}>• {broll}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -482,13 +707,19 @@ export default function VideoAgentScreen() {
             {quickActions.map((action, idx) => (
               <TouchableOpacity
                 key={idx}
-                style={styles.quickAction}
-                onPress={() => handleSend(action.prompt)}
+                style={[styles.quickAction, action.instant && styles.quickActionInstant]}
+                onPress={() => {
+                  if (action.instant) {
+                    generateInstantPack();
+                  } else {
+                    handleSend(action.prompt);
+                  }
+                }}
                 activeOpacity={0.8}
-                disabled={isLoading}
+                disabled={isLoading && !action.instant}
               >
-                <action.icon size={16} color={Colors.light.coral} />
-                <Text style={styles.quickActionText}>{action.label}</Text>
+                <action.icon size={16} color={action.instant ? "#fff" : Colors.light.coral} />
+                <Text style={[styles.quickActionText, action.instant && styles.quickActionTextInstant]}>{action.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -648,10 +879,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
   },
+  quickActionInstant: {
+    backgroundColor: Colors.light.coral,
+    borderColor: Colors.light.coral,
+  },
   quickActionText: {
     fontSize: 13,
     fontWeight: "600" as const,
     color: Colors.light.text,
+  },
+  quickActionTextInstant: {
+    color: "#fff",
   },
   messageContainer: {
     marginBottom: 12,
@@ -906,6 +1144,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600" as const,
     color: Colors.light.sapphire,
+  },
+  hookItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.light.coralLight,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  hookText: {
+    flex: 1,
+    fontSize: 13,
+    fontStyle: "italic" as const,
+    color: Colors.light.text,
+    lineHeight: 18,
+  },
+  soundItem: {
+    backgroundColor: Colors.light.goldLight,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  soundText: {
+    fontSize: 13,
+    color: Colors.light.text,
+  },
+  brollItem: {
+    paddingVertical: 6,
+  },
+  brollText: {
+    fontSize: 13,
+    color: Colors.light.textSecondary,
+    lineHeight: 18,
   },
   inputContainer: {
     flexDirection: "row",
