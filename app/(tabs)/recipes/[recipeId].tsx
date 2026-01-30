@@ -485,6 +485,23 @@ export default function RecipeDetailScreen() {
             </View>
           ) : (
             <View style={styles.videoPackContent}>
+              {/* Generated Hero Shot Image */}
+              {recipe.shortVideoPack.generatedHeroImage && (
+                <View style={styles.heroImageCard}>
+                  <View style={styles.heroImageHeader}>
+                    <View style={styles.videoPackCardIcon}>
+                      <ImageIcon size={16} color={Colors.light.gold} />
+                    </View>
+                    <Text style={styles.videoPackCardTitle}>Generated Hero Shot</Text>
+                  </View>
+                  <Image
+                    source={{ uri: recipe.shortVideoPack.generatedHeroImage }}
+                    style={styles.generatedHeroImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              )}
+
               {/* Video Script */}
               <TouchableOpacity
                 style={styles.videoPackCard}
@@ -1144,6 +1161,24 @@ const styles = StyleSheet.create({
     padding: 14,
     paddingTop: 0,
     gap: 10,
+  },
+  heroImageCard: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 10,
+  },
+  heroImageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 14,
+  },
+  generatedHeroImage: {
+    width: "100%",
+    aspectRatio: 1,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
   },
   scriptItem: {
     flexDirection: "row",
