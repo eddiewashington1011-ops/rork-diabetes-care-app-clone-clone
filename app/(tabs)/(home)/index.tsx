@@ -228,7 +228,7 @@ export default function HomeScreen() {
         >
           <View style={styles.heroContent}>
             <Text style={styles.greeting}>Welcome back</Text>
-            <Text style={styles.heroTitle}>Dia Care</Text>
+            <Text style={styles.heroTitle}>Dia Care #2</Text>
             <Text style={styles.heroTagline}>The Diabetes Management App</Text>
             <Text style={styles.heroSubtitle}>I’m Dia — your coach & check-in buddy.</Text>
           </View>
