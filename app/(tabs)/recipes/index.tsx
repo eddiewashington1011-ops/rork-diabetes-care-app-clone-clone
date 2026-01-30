@@ -148,16 +148,26 @@ export default function RecipesScreen() {
 
     try {
       const created = await createRecipeWithAgent({ goal: coachGoal, preferences: coachPrefs });
+      
+      if (!created || !created.id) {
+        console.error("[cookbook] onGenerate: createRecipeWithAgent returned invalid recipe");
+        Alert.alert("Recipe Issue", "Something went wrong, but we've created a fallback recipe for you.");
+        return;
+      }
+      
       console.log("[cookbook] recipe created successfully", { id: created.id, title: created.title });
       setCoachOpen(false);
       setCoachPrefs("");
       setTimeout(() => {
         openRecipe(created.id);
-      }, 50);
+      }, 100);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      console.error("[cookbook] onGenerate failed", { error: errorMessage });
-      Alert.alert("Could not generate recipe", errorMessage.length > 100 ? errorMessage.slice(0, 100) + "..." : errorMessage);
+      console.error("[cookbook] onGenerate failed", { error: errorMessage, stack: e instanceof Error ? e.stack : undefined });
+      Alert.alert(
+        "Recipe Generation", 
+        "We couldn't connect to Dia right now. Please check your connection and try again."
+      );
     } finally {
       setIsGenerating(false);
     }
