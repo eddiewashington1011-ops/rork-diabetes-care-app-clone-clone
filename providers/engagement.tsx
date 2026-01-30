@@ -94,15 +94,21 @@ function normalizeReminder(r: Reminder): Reminder {
   };
 }
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+if (Platform.OS !== "web") {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch (e) {
+    console.warn("[engagement] Failed to set notification handler", e);
+  }
+}
 
 function parseTimeToHourMinute(time: string): { hour: number; minute: number } | null {
   const [hhRaw, mmRaw] = time.split(":");
