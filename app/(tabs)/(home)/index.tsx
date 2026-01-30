@@ -1107,9 +1107,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   streakPillsRow: {
-    flexDirection: "row",
-    gap: 8,
+    flexDirection: "column",
+    gap: 6,
     marginTop: 10,
+  },
+  smallPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignSelf: "flex-start",
   },
   insightCard: {
     backgroundColor: Colors.light.background,
@@ -1198,11 +1204,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: 6,
   },
-  smallPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
+
   smallPillText: {
     fontSize: 11,
     fontWeight: "900" as const,
